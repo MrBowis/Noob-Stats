@@ -1,0 +1,24 @@
+@startuml Diagrama-Componentes
+!theme plain
+
+package "Aplicación Móvil Android (.apk)" {
+    [Capa de Presentación (UI Flutter)] as ui
+    [Capa de Servicios (Abstracción)] as servicios
+    ui --> servicios : "Llamadas internas\nde control"
+}
+
+cloud "Ecosistema Supabase (BaaS)" {
+    [Supabase Auth] as auth
+    
+    database "PostgreSQL (Base de Datos Relacional)" {
+        [Tablas de Acceso:\n(Persona / Usuario / Rol)] as t_id
+        [Tablas de Perfiles:\n(Jugador / Entrenador)] as t_perfiles
+        [Tabla: Equipo] as t_equipo
+        [Tabla: EstadisticaPartido\n(Autoría: Entrenador)] as t_partido
+        [Tabla: NotaBienestar\n(Autoría: Jugador)] as t_bienestar
+    }
+}
+
+servicios --> auth : "HTTPS / Autenticación y Token JWT"
+servicios --> "PostgreSQL (Base de Datos Relacional)" : "PostgREST / Operaciones CRUD (RESTful API)"
+@endum

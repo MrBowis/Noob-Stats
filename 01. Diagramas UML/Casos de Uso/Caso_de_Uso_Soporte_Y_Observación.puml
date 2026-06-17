@@ -1,0 +1,17 @@
+@startuml Caso?_de_Uso_Soporte_Y_Observación
+!theme plain
+left to right direction
+
+actor "Entrenador / DT" as entrenador
+actor "Administrador del Prototipo" as admin
+
+rectangle "Módulo Soporte y Observación" {
+    usecase "Observar Sesión de Demostración" as uc_demo
+    usecase "Monitorear Base de Datos Supabase" as uc_monitor
+    usecase "Distribuir APK de Prueba" as uc_apk
+}
+
+entrenador --> uc_demo
+admin --> uc_monitor
+admin --> uc_apk
+@enduml

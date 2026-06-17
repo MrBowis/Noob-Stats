@@ -1,0 +1,14 @@
+@startuml Caso_de_Uso_Historial_Y_Rendimiento
+!theme plain
+left to right direction
+
+actor "Futbolista Amateur" as jugador
+
+rectangle "Módulo Historial y Rendimiento" {
+    usecase "Consultar Totales y Promedios" as uc_calculos
+    usecase "Visualizar Historial Acumulado" as uc_historial
+}
+
+jugador --> uc_calculos
+jugador --> uc_historial
+@enduml

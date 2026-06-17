@@ -1,0 +1,100 @@
+@startuml Diagrama-Clases
+!theme plain
+
+class Persona {
+ - idPersona: uuid
+ - nombre: String
+ - correo: String
+}
+
+class Usuario {
+ - idUsuario: uuid
+ - idPersona: uuid
+ - idRol: uuid
+ - estado: String
+ + editarPerfil(): void
+}
+
+class Rol {
+ - idRol: uuid
+ - nombreRol: String
+ - descripcion: String
+}
+
+class Jugador {
+ - idJugador: uuid
+ - idPersona: uuid
+ - idEquipo: uuid
+ - piernaDominante: String
+ - posicionPreferencia: String
+}
+
+class Entrenador {
+ - idEntrenador: uuid
+ - idPersona: uuid
+ - licenciaDT: String
+}
+
+class Equipo {
+ - idEquipo: uuid
+ - idEntrenador: uuid
+ - nombreEquipo: String
+ - categoria: String
+}
+
+class EstadisticasPartido {
+ - idEstadistica: uuid
+ - idEntrenador: uuid
+ - idJugador: uuid
+ - goles: int
+ - asistencias: int
+ - tarjetasRojas: int
+ - tarjetasAmarillas: int
+ - minutos: int
+ - pasesCompletados: int
+ - recuperaciones: int
+ - posicionJugada: String
+ + registrarPartido(): void
+}
+
+class NotaBienestar {
+ - idNota: uuid
+ - idJugador: uuid
+ - estadoFisico: String
+ - estadoEmocional: String
+ + agregarObservaciones(): void
+}
+
+class AuthService {
+ + iniciarSesion(): Token
+ + registrarse(): Token
+}
+
+class SupabaseService {
+ + guardarRegistro(tabla: String, datos: Object): bool
+ + consultarHistorialJugador(idJugador: uuid): List<EstadisticasPartido>
+}
+
+' Herencia / Especialización de Persona
+Jugador --|> Persona
+Entrenador --|> Persona
+
+' Relaciones de la cuenta y roles
+Usuario "1" --> "1" Persona : autentica a
+Usuario "1" --> "1" Rol : posee
+
+' Estructura organizativa de los clubes
+Entrenador "1" -- "0..*" Equipo : dirige
+Equipo "1" -- "0..*" Jugador : pertenece a
+
+' Reglas estrictas de autoría de registros post-partido
+Entrenador "1" ..> "0..*" EstadisticasPartido : <<creates>> registra
+Jugador "1" -- "0..*" EstadisticasPartido : se le atribuyen métricas
+Jugador "1" -- "0..*" NotaBienestar : autorregistra de forma exclusiva
+
+' Inyección de servicios globales
+Usuario ..> AuthService : <<use>>
+EstadisticasPartido ..> SupabaseService : <<use>>
+NotaBienestar ..> SupabaseService : <<use>>
+
+@enduml

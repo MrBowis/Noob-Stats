@@ -1,0 +1,26 @@
+@startuml Diagrama-Estados
+!theme plain
+
+[*] --> Torneo_Activo : Inicio de la jornada
+
+state Torneo_Activo {
+
+    state "Flujo del Entrenador (Métricas Cuantitativas)" as flujo_dt {
+        [*] --> Pendiente_Asignacion : Termina el encuentro deportivo
+        Pendiente_Asignacion --> Metricas_Establecidas : Entrenador selecciona jugador\ny asigna goles, asistencias, pases
+        Metricas_Establecidas --> Estadistica_Sincronizada : Guardar y persistir en Supabase (PostgreSQL)
+        Estadistica_Sincronizada --> [*]
+    }
+    
+    --
+    
+    state "Flujo del Jugador (Percepción Cualitativa)" as flujo_jugador {
+        [*] --> Pendiente_Autoevaluacion : Termina el encuentro deportivo
+        Pendiente_Autoevaluacion --> Bienestar_Completado : Jugador registra su estado\nfísico y emocional
+        Bienestar_Completado --> Bienestar_Sincronizado : Guardar y persistir en Supabase (PostgreSQL)
+        Bienestar_Sincronizado --> [*]
+    }
+}
+
+Torneo_Activo --> [*] : Cierre de registros de la fecha
+@endum

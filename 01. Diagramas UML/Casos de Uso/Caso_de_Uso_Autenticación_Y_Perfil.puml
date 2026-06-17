@@ -1,0 +1,28 @@
+@startuml Caso_de_Uso_Autenticación_Y_Perfil
+!theme plain
+left to right direction
+
+actor "Futbolista Amateur" as jugador
+actor "Entrenador / DT" as entrenador
+actor "Supabase Auth" as auth <<Service>>
+
+rectangle "Módulo Autenticación y Perfil (Noob Stats)" {
+    usecase "Registrarse" as uc_registro
+    usecase "Iniciar Sesión" as uc_login
+    usecase "Configurar Perfil Deportivo" as uc_perfil
+}
+
+' Interacciones del Jugador
+jugador --> uc_registro
+jugador --> uc_login
+jugador --> uc_perfil
+
+' Interacciones del Entrenador
+entrenador --> uc_registro
+entrenador --> uc_login
+entrenador --> uc_perfil
+
+' Delegación al servicio de autenticación
+uc_registro --> auth
+uc_login --> auth
+@enduml

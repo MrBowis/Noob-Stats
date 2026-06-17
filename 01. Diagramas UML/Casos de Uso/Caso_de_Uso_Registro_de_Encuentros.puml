@@ -1,0 +1,15 @@
+@startuml Caso_de_Uso_Registro_de_Encuentros
+!theme plain
+left to right direction
+
+actor "Entrenador / DT" as entrenador
+actor "Futbolista Amateur" as jugador
+
+rectangle "Módulo Registro de Encuentros" {
+    usecase "Registrar Estadísticas Técnicas\n(Seleccionando Jugador)" as uc_metricas
+    usecase "Registrar Notas de Bienestar\n(Personal / Privado)" as uc_bienestar
+}
+
+entrenador --> uc_metricas
+jugador --> uc_bienestar
+@enduml

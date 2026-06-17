@@ -1,0 +1,61 @@
+@startuml Diagrama-Objeto-Estado
+!theme plain
+
+object "personaErick:Persona" as p_erick {
+ idPersona = "a1b2c3d4-e5f6-7a8b..."
+ nombre = "Erick Moreira"
+ correo = "erickmoreira@gmail.com"
+}
+
+object "usuarioErick:Usuario" as u_erick {
+ idUsuario = "usr_99214-8831..."
+ estado = "Autenticado"
+}
+
+object "jugadorErick:Jugador" as j_erick {
+ idJugador = "jug_77412-1102..."
+ piernaDominante = "Zurda"
+ posicionPreferencia = "Mediocampista"
+}
+
+object "entrenadorProfe:Entrenador" as e_profe {
+ idEntrenador = "dt_55102-4431..."
+ licenciaDT = "Licencia A FEF"
+}
+
+object "equipoNoobs:Equipo" as eq_noobs {
+ idEquipo = "eq_10025-9921..."
+ nombreEquipo = "Noob Stats FC"
+categoria = "Amateur Senior"
+}
+
+object "partido01:EstadisticasPartido" as stat {
+ idEstadistica = "stat_88314-0021..."
+ goles = 2
+ asistencias = 1
+ tarjetasRojas = 0
+ tarjetasAmarillas = 1
+ minutos = 90
+ posicionJugada = "Delantero"
+ estado = "Validado por DT"
+}
+
+object "bienestar01:NotaBienestar" as bien {
+ idNota = "well_44125-5512..."
+ estadoFisico = "Fatiga Moderada"
+ estadoEmocional = "Alta Motivación"
+ estado = "Completado"
+}
+
+' Relaciones estructurales de los objetos
+u_erick --> p_erick : "mapea credenciales"
+j_erick --|> p_erick : "es un"
+eq_noobs "1" -- "0..*" j_erick : "alberga"
+e_profe "1" -- "1" eq_noobs : "dirige"
+
+' Trazabilidad de la autoría relacional
+e_profe ..> stat : "registra y firma >"
+j_erick "1" -- "0..*" stat : "recibe rendimiento >"
+j_erick "1" -- "0..1" bien : "autorregistra personalmente >"
+
+@enduml

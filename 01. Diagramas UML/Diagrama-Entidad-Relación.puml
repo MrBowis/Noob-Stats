@@ -1,0 +1,84 @@
+@startuml Diagrama-Entidad-Relacion
+!theme plain
+hide circle
+
+entity "Persona" as persona {
+  * id_persona : VARCHAR <<PK>>
+  --
+  nombre : VARCHAR(100)
+  correo : VARCHAR(100)
+}
+
+entity "Usuario" as usuario {
+  * id_usuario : VARCHAR <<PK>>
+  --
+  * id_persona : VARCHAR <<FK>>
+  * id_rol : VARCHAR <<FK>>
+  estado : VARCHAR(30)
+}
+
+entity "Rol" as rol {
+  * id_rol : VARCHAR <<PK>>
+  --
+  nombre_rol : VARCHAR(50)
+  descripcion : VARCHAR(150)
+}
+
+entity "Jugador" as jugador {
+  * id_jugador : VARCHAR <<PK>>
+  --
+  * id_persona : VARCHAR <<FK>>
+  * id_equipo : VARCHAR <<FK>>
+  pierna_dominante : VARCHAR(20)
+  posicion_preferencia : VARCHAR(30)
+}
+
+entity "Entrenador" as entrenador {
+  * id_entrenador : VARCHAR <<PK>>
+  --
+  * id_persona : VARCHAR <<FK>>
+  licencia_dt : VARCHAR(50)
+}
+
+entity "Equipo" as equipo {
+  * id_equipo : VARCHAR <<PK>>
+  --
+  * id_entrenador : VARCHAR <<FK>>
+  nombre_equipo : VARCHAR(100)
+  categoria : VARCHAR(50)
+}
+
+entity "EstadisticaPartido" as estadistica {
+  * id_estadistica : VARCHAR <<PK>>
+  --
+  * id_entrenador : VARCHAR <<FK>>
+  * id_jugador : VARCHAR <<FK>>
+  goles : INT
+  asistencias : INT
+  tarjetas : INT
+  minutos : INT
+  pases_completados : INT
+  recuperaciones : INT
+  posicion_jugada : VARCHAR(30)
+}
+
+entity "NotaBienestar" as bienestar {
+  * id_bienestar : VARCHAR <<PK>>
+  --
+  * id_jugador : VARCHAR <<FK>>
+  estado_fisico : VARCHAR(50)
+  estado_emocional : VARCHAR(50)
+}
+
+persona ||--o| usuario : "se conecta con"
+rol ||--|{ usuario : "asociado a"
+persona ||--o| jugador : "se especializa en"
+persona ||--o| entrenador : "se identifica como"
+entrenador ||--|{ equipo : "dirige"
+equipo ||--|{ jugador : "pertenece a"
+
+' Nuevas reglas de autoría post-partido
+entrenador ||--o{ estadistica : "registra y asigna"
+jugador ||--o{ estadistica : "se le atribuye"
+jugador ||--o{ bienestar : "autorregistra personalmente"
+@endum
