@@ -1,12 +1,10 @@
 name: "Fase 3 · Deploy"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Se dispara automáticamente cuando Fase 2 hace auto-merge test→main.
-# Despliega auth-ms en Render y el frontend en Vercel.
+# Disparado por Fase 2 vía workflow_dispatch sobre la rama main.
 # ─────────────────────────────────────────────────────────────────────────────
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:

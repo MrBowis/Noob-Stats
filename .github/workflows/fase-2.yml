@@ -1,15 +1,15 @@
 name: "Fase 2 · Tests, Sonar & Build"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Se dispara automáticamente cuando Fase 1 hace auto-merge dev→test.
-# Al final, si todo pasa, hace auto-merge test→main (dispara Fase 3).
+# Disparado por Fase 1 vía workflow_dispatch sobre la rama test.
+# Al final, si todo pasa, hace merge test→main y dispara Fase 3.
 # ─────────────────────────────────────────────────────────────────────────────
 on:
-  push:
-    branches: [test]
+  workflow_dispatch:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   # ─── Tests ──────────────────────────────────────────────────────────────────
@@ -165,9 +165,9 @@ jobs:
             -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
               '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
-  # ─── Auto-merge test → main (solo si sonar + build pasaron) ─────────────────
-  promote-to-main:
-    name: "Auto-merge test → main"
+  # ─── Merge test→main + disparar Fase 3 (solo si sonar + build pasaron) ──────
+  promote-and-trigger:
+    name: "Merge test→main · Disparar Fase 3"
     needs: [sonar, build]
     runs-on: ubuntu-latest
     steps:
@@ -185,7 +185,15 @@ jobs:
           git merge --no-ff -X theirs origin/test -m "chore: auto-merge test → main [ci]"
           git push origin main
 
-      - name: "Telegram · Auto-merge test → main"
+      - name: Disparar Fase 3
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/fase-3.yml/dispatches" \
+            -d '{"ref":"main"}'
+
+      - name: "Telegram · Merge test → main"
         if: always()
         run: |
           STATUS="${{ job.status }}"
