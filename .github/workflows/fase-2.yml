@@ -1,0 +1,201 @@
+name: "Fase 2 · Tests, Sonar & Build"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Se dispara automáticamente cuando Fase 1 hace auto-merge dev→test.
+# Al final, si todo pasa, hace auto-merge test→main (dispara Fase 3).
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [test]
+
+permissions:
+  contents: write
+
+jobs:
+  # ─── Tests ──────────────────────────────────────────────────────────────────
+  test:
+    name: "Tests · ${{ matrix.project }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: auth-ms
+            test-cmd: npm run test:cov
+          - project: frontend
+            test-cmd: npm test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+
+      - name: Install
+        working-directory: ${{ matrix.project }}
+        run: npm ci
+
+      - name: Run tests with coverage
+        working-directory: ${{ matrix.project }}
+        run: ${{ matrix.test-cmd }}
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.project }}
+          path: ${{ matrix.project }}/coverage/lcov.info
+          retention-days: 1
+
+      - name: "Telegram · Tests · ${{ matrix.project }}"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
+          MSG="$ICON <b>Fase 2 · Tests · ${{ matrix.project }}</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Rama: <code>${{ github.ref_name }}</code>
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
+
+  # ─── SonarCloud ─────────────────────────────────────────────────────────────
+  sonar:
+    name: "SonarCloud"
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage · auth-ms
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-auth-ms
+          path: auth-ms/coverage
+
+      - name: Download coverage · frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-frontend
+          path: frontend/coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: "Telegram · SonarCloud"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
+          MSG="$ICON <b>Fase 2 · SonarCloud</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Rama: <code>${{ github.ref_name }}</code>
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
+
+  # ─── Build ──────────────────────────────────────────────────────────────────
+  build:
+    name: "Build · ${{ matrix.project }}"
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: auth-ms
+            build-cmd: npm run build
+            artifact-path: auth-ms/dist
+          - project: frontend
+            build-cmd: npx expo export --platform web
+            artifact-path: frontend/dist
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+
+      - name: Install
+        working-directory: ${{ matrix.project }}
+        run: npm ci
+
+      - name: Build
+        working-directory: ${{ matrix.project }}
+        run: ${{ matrix.build-cmd }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.project }}
+          path: ${{ matrix.artifact-path }}
+          retention-days: 7
+
+      - name: "Telegram · Build · ${{ matrix.project }}"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
+          MSG="$ICON <b>Fase 2 · Build · ${{ matrix.project }}</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Rama: <code>${{ github.ref_name }}</code>
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
+
+  # ─── Auto-merge test → main (solo si sonar + build pasaron) ─────────────────
+  promote-to-main:
+    name: "Auto-merge test → main"
+    needs: [sonar, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge test → main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          git checkout -B main origin/main 2>/dev/null || git checkout -b main
+          git merge --no-ff -X theirs origin/test -m "chore: auto-merge test → main [ci]"
+          git push origin main
+
+      - name: "Telegram · Auto-merge test → main"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="🔀" || ICON="❌"
+          MSG="$ICON <b>Auto-merge test → main</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
