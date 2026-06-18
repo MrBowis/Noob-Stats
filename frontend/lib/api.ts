@@ -26,6 +26,7 @@ async function request<T>(
     method: options.method ?? 'GET',
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
+    cache: 'no-store',
   });
 
   const text = await response.text();
@@ -59,9 +60,16 @@ export const authApi = {
     });
   },
 
-  googleUrl(redirectTo: string): Promise<{ url: string }> {
+  async googleUrl(redirectTo: string): Promise<{ url: string }> {
     const params = new URLSearchParams({ redirectTo });
-    return request<{ url: string }>(`/auth/google/url?${params.toString()}`);
+    const data = await request<any>(`/auth/google/url?${params.toString()}`);
+
+    // Manejar múltiples formatos posibles por temas de caché o versiones
+    if (typeof data === 'string') return { url: data };
+    if (data?.url && typeof data.url === 'object' && data.url.url) {
+      return { url: data.url.url };
+    }
+    return data;
   },
 
   googleCallback(

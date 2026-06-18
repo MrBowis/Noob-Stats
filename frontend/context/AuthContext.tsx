@@ -145,8 +145,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       tokens.accessToken,
     );
     await writeSession(dto);
-    setSession(dto);
     setProfile(nextProfile);
+    setSession(dto); // Actualizar sesión al final para disparar redirecciones
   }, []);
 
   const signOut = useCallback(async () => {
