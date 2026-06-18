@@ -104,7 +104,7 @@ export default function RegisterScreen() {
 
           <TextField
             label="Correo"
-            placeholder="tu@correo.com"
+            placeholder="example@email.com"
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
