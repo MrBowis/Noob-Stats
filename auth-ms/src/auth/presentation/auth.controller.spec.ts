@@ -40,7 +40,7 @@ describe('AuthController', () => {
   });
 
   it('googleUrl devuelve { url } desde GetGoogleAuthUrlUseCase', async () => {
-    getGoogleAuthUrl.execute.mockResolvedValue('https://oauth.url');
+    getGoogleAuthUrl.execute.mockResolvedValue({ url: 'https://oauth.url' });
     const result = await controller.googleUrl('noobstats://auth-callback');
     expect(getGoogleAuthUrl.execute).toHaveBeenCalledWith({
       redirectTo: 'noobstats://auth-callback',
