@@ -1,19 +1,23 @@
 name: CI / CD
 
 # ─────────────────────────────────────────────────────────────────────────────
-# FLUJO DE RAMAS:
+# FLUJO:
 #   feature/* ──PR──→ dev    Fase 1: deps + lint  (gate de merge)
-#   dev ──push──→ test       Fase 1 + 2: tests + Sonar + build
-#   test ──push──→ main      Fase 1 + 2 + 3: ídem + deploy
+#   push a dev               Fase 1 + 2 → auto-merge dev→test
+#                            Fase 3 (deploy) → auto-merge test→main
 #
-# Solo se hacen PRs a dev. Las promociones dev→test y test→main
-# son pushes directos (merge local o fast-forward).
+# Solo hay dos triggers: PR a dev y push a dev.
+# Los merges a test y main los hace el propio pipeline.
 # ─────────────────────────────────────────────────────────────────────────────
 on:
   pull_request:
     branches: [dev]
   push:
     branches: [dev]
+
+# GITHUB_TOKEN necesita permisos de escritura para hacer los auto-merges.
+permissions:
+  contents: write
 
 # Secrets requeridos en GitHub → Settings → Secrets and variables → Actions:
 #   TELEGRAM_BOT_TOKEN  → token del bot de Telegram (de @BotFather)
@@ -24,7 +28,7 @@ on:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════
-  # FASE 1 — DEPENDENCIAS + LINT   (toda PR a dev y todo push a test/main)
+  # FASE 1 — DEPS + LINT   (toda PR y todo push a dev)
   # ═══════════════════════════════════════════════════════════════════════════
   install:
     name: "Fase 1 · Deps & Lint"
@@ -79,8 +83,7 @@ jobs:
               '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # FASE 2 — PRUEBAS UNITARIAS   (push a test o main)
-  # auth-ms y frontend corren en paralelo; ambos deben pasar para continuar.
+  # FASE 2 — TESTS   (solo push a dev; PR solo pasa por Fase 1)
   # ═══════════════════════════════════════════════════════════════════════════
   test:
     name: "Fase 2 · Tests · ${{ matrix.project }}"
@@ -138,8 +141,7 @@ jobs:
               '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # FASE 2b — SONARCLOUD   (necesita los LCOV de ambos proyectos)
-  # Quality Gate: cobertura > 80 %, duplicación < 3 %, 0 vulnerabilidades.
+  # FASE 2b — SONARCLOUD
   # ═══════════════════════════════════════════════════════════════════════════
   sonar:
     name: "Fase 2 · SonarCloud"
@@ -244,12 +246,51 @@ jobs:
               '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # FASE 3 — DEPLOY   (solo push a main; Sonar + Build deben haber pasado)
+  # AUTO-MERGE dev → test   (Sonar + Build aprobados)
+  # ═══════════════════════════════════════════════════════════════════════════
+  promote-to-test:
+    name: "Auto-merge dev → test"
+    needs: [sonar, build]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge dev → test
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          # Crea test si no existe; si existe, la resetea a origin/test
+          git checkout -B test origin/test 2>/dev/null || git checkout -b test
+          git merge --no-ff -X theirs origin/dev -m "chore: auto-merge dev → test [ci]"
+          git push origin test
+
+      - name: "Telegram · Auto-merge dev → test"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="🔀" || ICON="❌"
+          MSG="$ICON <b>Auto-merge dev → test</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # FASE 3 — DEPLOY   (después del merge a test)
   # ═══════════════════════════════════════════════════════════════════════════
   deploy:
     name: "Fase 3 · Deploy"
-    needs: [sonar, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: promote-to-test
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy auth-ms → Render
@@ -273,6 +314,45 @@ jobs:
           Estado: <b>$STATUS</b>
           Repo: ${{ github.repository }}
           Rama: <code>${{ github.ref_name }}</code>
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AUTO-MERGE test → main   (deploy aprobado)
+  # ═══════════════════════════════════════════════════════════════════════════
+  promote-to-main:
+    name: "Auto-merge test → main"
+    needs: deploy
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge test → main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          # Crea main si no existe; si existe, la resetea a origin/main
+          git checkout -B main origin/main 2>/dev/null || git checkout -b main
+          git merge --no-ff -X theirs origin/test -m "chore: auto-merge test → main [ci]"
+          git push origin main
+
+      - name: "Telegram · Auto-merge test → main"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="🏁" || ICON="❌"
+          MSG="$ICON <b>Auto-merge test → main</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
           Commit: <code>${GITHUB_SHA:0:7}</code>"
           curl -s -X POST \
             "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
