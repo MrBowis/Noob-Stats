@@ -1,0 +1,17 @@
+/**
+ * Escala de espaciado y radios. Esquinas muy redondeadas como firma visual.
+ */
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+} as const;
+
+export const radius = {
+  input: 16, // Inputs y tarjetas
+  card: 20,
+  pill: 999, // Botones tipo píldora
+} as const;
