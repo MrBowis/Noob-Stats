@@ -12,16 +12,19 @@ export function parseTokensFromUrl(url: string): OAuthTokens | null {
   const params = new URLSearchParams();
 
   const fragmentIndex = url.indexOf('#');
-  if (fragmentIndex >= 0) {
-    new URLSearchParams(url.slice(fragmentIndex + 1)).forEach((v, k) =>
+  const queryIndex = url.indexOf('?');
+
+  // Query se carga primero para que el fragmento pueda sobreescribirlo.
+  // Supabase OAuth siempre devuelve los tokens en el fragmento (#).
+  if (queryIndex >= 0) {
+    const end = fragmentIndex >= 0 ? fragmentIndex : url.length;
+    new URLSearchParams(url.slice(queryIndex + 1, end)).forEach((v, k) =>
       params.set(k, v),
     );
   }
 
-  const queryIndex = url.indexOf('?');
-  if (queryIndex >= 0) {
-    const end = fragmentIndex >= 0 ? fragmentIndex : url.length;
-    new URLSearchParams(url.slice(queryIndex + 1, end)).forEach((v, k) =>
+  if (fragmentIndex >= 0) {
+    new URLSearchParams(url.slice(fragmentIndex + 1)).forEach((v, k) =>
       params.set(k, v),
     );
   }
