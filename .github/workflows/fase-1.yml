@@ -1,9 +1,8 @@
 name: "Fase 1 · Deps & Lint"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Se ejecuta en:
-#   - Toda PR hacia dev  → solo lint (gate de merge, sin auto-merge)
-#   - Push a dev         → lint + auto-merge dev→test (dispara Fase 2)
+# PR a dev  → solo lint (gate de merge)
+# Push a dev → lint + auto-merge dev→test + dispara Fase 2 vía API
 # ─────────────────────────────────────────────────────────────────────────────
 on:
   pull_request:
@@ -13,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   lint:
@@ -67,9 +67,9 @@ jobs:
             -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
               '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
-  # Solo se ejecuta en push (no en PR) y solo si lint pasó
-  promote-to-test:
-    name: "Auto-merge dev → test"
+  # Solo en push (no en PR) y solo si lint pasó
+  promote-and-trigger:
+    name: "Merge dev→test · Disparar Fase 2"
     needs: lint
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -88,7 +88,15 @@ jobs:
           git merge --no-ff -X theirs origin/dev -m "chore: auto-merge dev → test [ci]"
           git push origin test
 
-      - name: "Telegram · Auto-merge dev → test"
+      - name: Disparar Fase 2
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/fase-2.yml/dispatches" \
+            -d '{"ref":"test"}'
+
+      - name: "Telegram · Merge dev → test"
         if: always()
         run: |
           STATUS="${{ job.status }}"
