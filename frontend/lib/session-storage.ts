@@ -5,6 +5,8 @@ import * as SecureStore from 'expo-secure-store';
 // La app es mobile-first, así que la no-persistencia en web es aceptable.
 const webStore: Record<string, string> = {};
 
+export const SESSION_KEY = 'noobstats_session';
+
 export const sessionStorage = {
   async getItem(key: string): Promise<string | null> {
     if (Platform.OS === 'web') return webStore[key] ?? null;

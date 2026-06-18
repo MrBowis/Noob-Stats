@@ -1,18 +1,12 @@
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { colors } from '../theme';
 
-// Cierra el popup de OAuth en web y devuelve la URL al opener.
-// En native nunca se monta; el deep link lo maneja el SO.
+// Cierra el popup de OAuth y devuelve la URL al opener.
+// Debe estar en el nivel de módulo para ejecutarse antes del primer render.
 WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthCallbackScreen() {
-  useEffect(() => {
-    // Segundo intento en caso de que el componente monte después del módulo.
-    WebBrowser.maybeCompleteAuthSession();
-  }, []);
-
   return (
     <View style={styles.center}>
       <ActivityIndicator color={colors.accent} size="large" />

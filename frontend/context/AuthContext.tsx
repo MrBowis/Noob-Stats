@@ -10,12 +10,10 @@ import {
 } from 'react';
 import { authApi } from '../lib/api';
 import { parseTokensFromUrl } from '../lib/parse-tokens';
-import { sessionStorage } from '../lib/session-storage';
+import { SESSION_KEY, sessionStorage } from '../lib/session-storage';
 import { AuthSessionDto, RegisterPayload, UserProfile } from '../lib/types';
 
 WebBrowser.maybeCompleteAuthSession();
-
-const SESSION_KEY = 'noobstats_session';
 
 interface AuthContextValue {
   session: AuthSessionDto | null;
@@ -126,14 +124,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const redirectTo = Linking.createURL('auth-callback');
     const { url } = await authApi.googleUrl(redirectTo);
 
+    if (!url || typeof url !== 'string') {
+      throw new Error('No se pudo obtener la URL de Google OAuth');
+    }
+
     const result = await WebBrowser.openAuthSessionAsync(url, redirectTo);
     if (result.type !== 'success') return;
 
     const tokens = parseTokensFromUrl(result.url);
     if (!tokens) throw new Error('No se recibieron tokens de Google');
 
-    // Construimos la sesión con los tokens del deep link.
-    // expiresAt se aproxima a 1 hora desde ahora (duración estándar de Supabase).
     const dto: AuthSessionDto = {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
