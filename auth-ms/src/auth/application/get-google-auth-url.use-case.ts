@@ -9,11 +9,7 @@ export interface GetGoogleAuthUrlInput {
 export class GetGoogleAuthUrlUseCase {
   constructor(private readonly authRepository: AuthRepository) {}
 
-  async execute(input: GetGoogleAuthUrlInput): Promise<{ url: string }> {
-    const url = await this.authRepository.getOAuthSignInUrl(
-      'google',
-      input.redirectTo,
-    );
-    return { url };
+  execute(input: GetGoogleAuthUrlInput): Promise<string> {
+    return this.authRepository.getOAuthSignInUrl('google', input.redirectTo);
   }
 }

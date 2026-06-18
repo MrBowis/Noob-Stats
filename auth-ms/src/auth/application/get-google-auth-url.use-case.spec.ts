@@ -26,6 +26,6 @@ describe('GetGoogleAuthUrlUseCase', () => {
       'google',
       'noobstats://auth-callback',
     );
-    expect(result).toEqual({ url: 'https://supabase/oauth?provider=google' });
+    expect(result).toBe('https://supabase/oauth?provider=google');
   });
 });

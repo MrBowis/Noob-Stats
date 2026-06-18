@@ -15,6 +15,13 @@ on:
   push:
     branches: [test, main]
 
+# Secrets requeridos en GitHub → Settings → Secrets and variables → Actions:
+#   TELEGRAM_BOT_TOKEN  → token del bot de Telegram (de @BotFather)
+#   TELEGRAM_CHAT_ID    → ID del chat/grupo que recibirá las notificaciones
+#   SONAR_TOKEN         → SonarCloud → My Account → Security → Generate Token
+#   RENDER_DEPLOY_HOOK  → Render → servicio → Settings → Deploy Hooks
+#   VERCEL_DEPLOY_HOOK  → Vercel → proyecto → Settings → Git → Deploy Hooks
+
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   # FASE 1 — DEPENDENCIAS + LINT   (toda PR a dev y todo push a test/main)
@@ -54,6 +61,22 @@ jobs:
       - name: frontend · typecheck
         working-directory: frontend
         run: npm run typecheck
+
+      - name: "Telegram · Fase 1"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
+          MSG="$ICON <b>Fase 1 · Deps &amp; Lint</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Rama: <code>${{ github.ref_name }}</code>
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # FASE 2 — PRUEBAS UNITARIAS   (push a test o main)
@@ -98,6 +121,22 @@ jobs:
           path: ${{ matrix.project }}/coverage/lcov.info
           retention-days: 1
 
+      - name: "Telegram · Fase 2 · Tests · ${{ matrix.project }}"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
+          MSG="$ICON <b>Fase 2 · Tests · ${{ matrix.project }}</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Rama: <code>${{ github.ref_name }}</code>
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
+
   # ═══════════════════════════════════════════════════════════════════════════
   # FASE 2b — SONARCLOUD   (necesita los LCOV de ambos proyectos)
   # Quality Gate: cobertura > 80 %, duplicación < 3 %, 0 vulnerabilidades.
@@ -129,6 +168,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: "Telegram · Fase 2 · SonarCloud"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
+          MSG="$ICON <b>Fase 2 · SonarCloud</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Rama: <code>${{ github.ref_name }}</code>
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # FASE 2c — BUILD   (paralelo con Sonar)
@@ -172,11 +227,24 @@ jobs:
           path: ${{ matrix.artifact-path }}
           retention-days: 7
 
+      - name: "Telegram · Fase 2 · Build · ${{ matrix.project }}"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
+          MSG="$ICON <b>Fase 2 · Build · ${{ matrix.project }}</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Rama: <code>${{ github.ref_name }}</code>
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
+
   # ═══════════════════════════════════════════════════════════════════════════
   # FASE 3 — DEPLOY   (solo push a main; Sonar + Build deben haber pasado)
-  # Secrets requeridos en GitHub → Settings → Secrets and variables → Actions:
-  #   RENDER_DEPLOY_HOOK → Render · tu servicio → Settings → Deploy Hooks
-  #   VERCEL_DEPLOY_HOOK → Vercel · proyecto → Settings → Git → Deploy Hooks
   # ═══════════════════════════════════════════════════════════════════════════
   deploy:
     name: "Fase 3 · Deploy"
@@ -195,3 +263,19 @@ jobs:
           response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}")
           echo "Vercel response: $response"
           [[ "$response" == "200" || "$response" == "201" ]] || exit 1
+
+      - name: "Telegram · Fase 3 · Deploy"
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          [[ "$STATUS" == "success" ]] && ICON="🚀" || ICON="💥"
+          MSG="$ICON <b>Fase 3 · Deploy</b>
+          Estado: <b>$STATUS</b>
+          Repo: ${{ github.repository }}
+          Rama: <code>${{ github.ref_name }}</code>
+          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
+              '{chat_id:$c,text:$m,parse_mode:"HTML"}')"

@@ -56,8 +56,8 @@ export class AuthController {
 
   @Get('google/url')
   async googleUrl(@Query('redirectTo') redirectTo: string) {
-    const result = await this.getGoogleAuthUrl.execute({ redirectTo });
-    return result;
+    const url = await this.getGoogleAuthUrl.execute({ redirectTo });
+    return { url };
   }
 
   @Post('refresh')
