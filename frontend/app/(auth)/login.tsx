@@ -70,7 +70,7 @@ export default function LoginScreen() {
 
           <TextField
             label="Correo"
-            placeholder="tu@correo.com"
+            placeholder="example@mail.com"
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
