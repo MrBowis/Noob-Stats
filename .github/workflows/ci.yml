@@ -266,7 +266,7 @@ jobs:
           git fetch origin
           # Crea test si no existe; si existe, la resetea a origin/test
           git checkout -B test origin/test 2>/dev/null || git checkout -b test
-          git merge --no-ff origin/dev -m "chore: auto-merge dev → test [ci]"
+          git merge --no-ff -X theirs origin/dev -m "chore: auto-merge dev → test [ci]"
           git push origin test
 
       - name: "Telegram · Auto-merge dev → test"
@@ -342,7 +342,7 @@ jobs:
           git fetch origin
           # Crea main si no existe; si existe, la resetea a origin/main
           git checkout -B main origin/main 2>/dev/null || git checkout -b main
-          git merge --no-ff origin/test -m "chore: auto-merge test → main [ci]"
+          git merge --no-ff -X theirs origin/test -m "chore: auto-merge test → main [ci]"
           git push origin main
 
       - name: "Telegram · Auto-merge test → main"
