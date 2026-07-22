@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,21 +15,51 @@ import { GoogleIcon } from '../../components/GoogleIcon';
 import { IconButton } from '../../components/IconButton';
 import { TextField } from '../../components/TextField';
 import { useAuth } from '../../context/AuthContext';
-import { colors, spacing, typography } from '../../theme';
+import { useToast } from '../../context/ToastContext';
+import { validatePasswordStrength } from '../../lib/password';
+import { colors, radius, spacing, typography } from '../../theme';
+
+const ROLES = [
+  { label: 'Futbolista', value: 'Futbolista' },
+  { label: 'Entrenador', value: 'Entrenador' },
+] as const;
+
+type RolNombre = (typeof ROLES)[number]['value'];
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { signUpWithEmail, signInWithGoogle } = useAuth();
+  const { showToast } = useToast();
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [rolNombre, setRolNombre] = useState<RolNombre>('Futbolista');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const onRegister = async () => {
-    setError(null);
+    if (
+      !nombres.trim() ||
+      !apellidos.trim() ||
+      !email.trim() ||
+      !password ||
+      !confirmPassword
+    ) {
+      showToast('Todos los campos son obligatorios', 'error');
+      return;
+    }
+    if (password !== confirmPassword) {
+      showToast('Las contraseñas no coinciden', 'error');
+      return;
+    }
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      showToast(passwordError, 'error');
+      return;
+    }
+
     setLoading(true);
     try {
       await signUpWithEmail({
@@ -36,23 +67,30 @@ export default function RegisterScreen() {
         password,
         nombres: nombres.trim(),
         apellidos: apellidos.trim(),
+        rolNombre,
       });
+      showToast('Cuenta creada correctamente', 'success');
       router.replace('/(app)/dashboard');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo crear la cuenta');
+      showToast(
+        e instanceof Error ? e.message : 'No se pudo crear la cuenta',
+        'error',
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const onGoogle = async () => {
-    setError(null);
     setGoogleLoading(true);
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(rolNombre);
       router.replace('/(app)/dashboard');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo usar Google');
+      showToast(
+        e instanceof Error ? e.message : 'No se pudo usar Google',
+        'error',
+      );
     } finally {
       setGoogleLoading(false);
     }
@@ -112,13 +150,49 @@ export default function RegisterScreen() {
           />
           <TextField
             label="Contraseña"
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Mínimo 8 caracteres"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
+          <TextField
+            label="Confirmar contraseña"
+            placeholder="Repite tu contraseña"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
+          <Text style={[typography.body, styles.hint]}>
+            Debe tener 8+ caracteres, mayúscula, minúscula, número y carácter
+            especial.
+          </Text>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Text style={[typography.overline, styles.roleLabel]}>Rol</Text>
+          <View style={styles.roleRow}>
+            {ROLES.map((rol) => {
+              const selected = rolNombre === rol.value;
+              return (
+                <Pressable
+                  key={rol.value}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => setRolNombre(rol.value)}
+                  style={[styles.roleOption, selected && styles.roleOptionSelected]}
+                >
+                  <Text
+                    style={[
+                      typography.buttonLabel,
+                      {
+                        color: selected ? colors.accentText : colors.textPrimary,
+                      },
+                    ]}
+                  >
+                    {rol.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
           <CTAButton
             label="Crear cuenta"
@@ -156,12 +230,31 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.md },
   half: { flex: 1 },
-  cta: { marginTop: spacing.md },
-  error: {
-    ...typography.body,
-    color: colors.live,
-    marginBottom: spacing.sm,
+  hint: {
+    marginTop: -spacing.sm,
+    marginBottom: spacing.lg,
   },
+  roleLabel: { marginBottom: spacing.sm },
+  roleRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  roleOption: {
+    flex: 1,
+    height: 48,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleOptionSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  cta: { marginTop: spacing.md },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',

@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+.expo
+.env
+.env.*
+!.env.example
+*.log
+.git
+.gitignore
+Dockerfile
+.dockerignore
+vercel.json
+README.md
+CLAUDE.md
+AGENTS.md
+.claude

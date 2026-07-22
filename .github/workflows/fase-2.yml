@@ -22,6 +22,12 @@ jobs:
         include:
           - project: auth-ms
             test-cmd: npm run test:cov
+          - project: equipos-ms
+            test-cmd: npm run test:cov
+          - project: admin-ms
+            test-cmd: npm run test:cov
+          - project: futbolista-ms
+            test-cmd: npm run test:cov
           - project: frontend
             test-cmd: npm test
     steps:
@@ -31,7 +37,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: ${{ matrix.project }}/package-lock.json
 
@@ -67,6 +73,9 @@ jobs:
               '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
   # ─── SonarCloud ─────────────────────────────────────────────────────────────
+  # El alcance del análisis lo define sonar-project.properties (auth-ms y
+  # frontend). Si se amplía a los demás microservicios, añade aquí la descarga
+  # de sus artefactos de cobertura.
   sonar:
     name: "SonarCloud"
     needs: test
@@ -110,51 +119,38 @@ jobs:
             -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
               '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
-  # ─── Build ──────────────────────────────────────────────────────────────────
+  # ─── Build de las imágenes Docker ───────────────────────────────────────────
+  # Se construye la misma pila que se desplegará en EC2, así un Dockerfile roto
+  # se detecta aquí y no durante el despliegue.
   build:
-    name: "Build · ${{ matrix.project }}"
+    name: "Build · imágenes Docker"
     needs: test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - project: auth-ms
-            build-cmd: npm run build
-            artifact-path: auth-ms/dist
-          - project: frontend
-            build-cmd: npx expo export --platform web
-            artifact-path: frontend/dist
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install
-        working-directory: ${{ matrix.project }}
-        run: npm ci
+      - name: .env de compilación
+        # docker compose interpola el archivo entero al leerlo: las variables
+        # obligatorias deben existir aunque aquí no se arranque nada.
+        run: |
+          cat > .env <<'EOF'
+          SUPABASE_URL=http://build-placeholder
+          SUPABASE_ANON_KEY=build-placeholder
+          SUPABASE_SERVICE_ROLE_KEY=build-placeholder
+          EOF
 
-      - name: Build
-        working-directory: ${{ matrix.project }}
-        run: ${{ matrix.build-cmd }}
+      - name: Build de la pila
+        run: docker compose build
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.project }}
-          path: ${{ matrix.artifact-path }}
-          retention-days: 7
-
-      - name: "Telegram · Build · ${{ matrix.project }}"
+      - name: "Telegram · Build Docker"
         if: always()
         run: |
           STATUS="${{ job.status }}"
           [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
-          MSG="$ICON <b>Fase 2 · Build · ${{ matrix.project }}</b>
+          MSG="$ICON <b>Fase 2 · Build imágenes Docker</b>
           Estado: <b>$STATUS</b>
           Repo: ${{ github.repository }}
           Rama: <code>${{ github.ref_name }}</code>

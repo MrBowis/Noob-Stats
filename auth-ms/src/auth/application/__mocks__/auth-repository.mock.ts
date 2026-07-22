@@ -13,6 +13,7 @@ export function createMockAuthRepository(): MockAuthRepository {
     findRolByNombre: jest.fn(),
     createPersona: jest.fn(),
     createUsuario: jest.fn(),
+    updatePersona: jest.fn(),
     findUsuarioByAuthId: jest.fn(),
     findProfileByAuthId: jest.fn(),
   };

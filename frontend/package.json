@@ -4,8 +4,10 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
+    "@expo/vector-icons": "^15.0.2",
     "expo": "~56.0.12",
     "expo-constants": "~56.0.18",
+    "expo-image-picker": "~56.0.21",
     "expo-linking": "~56.0.14",
     "expo-router": "~56.2.11",
     "expo-secure-store": "~56.0.4",

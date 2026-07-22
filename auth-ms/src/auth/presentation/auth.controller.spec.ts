@@ -7,6 +7,7 @@ describe('AuthController', () => {
   const getGoogleAuthUrl = { execute: jest.fn() };
   const getProfile = { execute: jest.fn() };
   const refreshToken = { execute: jest.fn() };
+  const updateProfile = { execute: jest.fn() };
 
   const controller = new AuthController(
     registerWithEmail as never,
@@ -15,6 +16,7 @@ describe('AuthController', () => {
     getGoogleAuthUrl as never,
     getProfile as never,
     refreshToken as never,
+    updateProfile as never,
   );
 
   afterEach(() => jest.clearAllMocks());
@@ -65,5 +67,15 @@ describe('AuthController', () => {
   it('me delega en GetProfileUseCase con el id del usuario', () => {
     void controller.me({ id: 'auth-1', email: 'a@b.com', fullName: null });
     expect(getProfile.execute).toHaveBeenCalledWith({ authId: 'auth-1' });
+  });
+
+  it('updateMe delega en UpdateProfileUseCase con el id del usuario', () => {
+    void controller.updateMe(
+      { id: 'auth-1', email: 'a@b.com', fullName: null },
+      { nombres: 'Nuevo' },
+    );
+    expect(updateProfile.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ authId: 'auth-1', nombres: 'Nuevo' }),
+    );
   });
 });
