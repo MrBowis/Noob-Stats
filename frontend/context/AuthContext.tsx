@@ -1,5 +1,6 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 import {
   createContext,
   useCallback,
@@ -20,6 +21,12 @@ import {
 
 WebBrowser.maybeCompleteAuthSession();
 
+/**
+ * En web el rol elegido en el registro tiene que sobrevivir a la redirección
+ * de página completa hacia Google, así que se guarda en sessionStorage.
+ */
+export const GOOGLE_ROL_KEY = 'noobstats.google.rol';
+
 interface AuthContextValue {
   session: AuthSessionDto | null;
   profile: UserProfile | null;
@@ -27,6 +34,8 @@ interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (payload: RegisterPayload) => Promise<void>;
   signInWithGoogle: (rolNombre?: string) => Promise<void>;
+  /** Cierra el flujo de Google a partir de la URL de retorno. */
+  completeGoogleSession: (url: string, rolNombre?: string) => Promise<void>;
   updateProfile: (payload: UpdateProfilePayload) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -126,35 +135,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(nextProfile);
   }, []);
 
-  const signInWithGoogle = useCallback(async (rolNombre?: string) => {
-    const redirectTo = Linking.createURL('auth-callback');
-    const { url } = await authApi.googleUrl(redirectTo);
+  const completeGoogleSession = useCallback(
+    async (url: string, rolNombre?: string) => {
+      const tokens = parseTokensFromUrl(url);
+      if (!tokens) throw new Error('No se recibieron tokens de Google');
 
-    if (!url || typeof url !== 'string') {
-      throw new Error('No se pudo obtener la URL de Google OAuth');
-    }
+      const dto: AuthSessionDto = {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        tokenType: 'bearer',
+      };
 
-    const result = await WebBrowser.openAuthSessionAsync(url, redirectTo);
-    if (result.type !== 'success') return;
+      const { profile: nextProfile } = await authApi.googleCallback(
+        tokens.accessToken,
+        rolNombre,
+      );
+      await writeSession(dto);
+      setProfile(nextProfile);
+      setSession(dto); // Actualizar sesión al final para disparar redirecciones
+    },
+    [],
+  );
 
-    const tokens = parseTokensFromUrl(result.url);
-    if (!tokens) throw new Error('No se recibieron tokens de Google');
+  const signInWithGoogle = useCallback(
+    async (rolNombre?: string) => {
+      const redirectTo = Linking.createURL('auth-callback');
+      const { url } = await authApi.googleUrl(redirectTo);
 
-    const dto: AuthSessionDto = {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      expiresAt: Math.floor(Date.now() / 1000) + 3600,
-      tokenType: 'bearer',
-    };
+      if (!url || typeof url !== 'string') {
+        throw new Error('No se pudo obtener la URL de Google OAuth');
+      }
 
-    const { profile: nextProfile } = await authApi.googleCallback(
-      tokens.accessToken,
-      rolNombre,
-    );
-    await writeSession(dto);
-    setProfile(nextProfile);
-    setSession(dto); // Actualizar sesión al final para disparar redirecciones
-  }, []);
+      // En web se navega la propia pestaña en lugar de abrir un popup.
+      // El flujo con popup de expo-web-browser depende de `crypto.subtle`,
+      // que el navegador sólo expone en contextos seguros (https, localhost o
+      // 127.0.0.1). Servida por http sobre una IP —como la instancia EC2— esa
+      // API no existe, la librería no llega a registrar la sesión y el popup
+      // se queda abierto para siempre. La redirección funciona en cualquier
+      // origen y no necesita postMessage.
+      if (Platform.OS === 'web') {
+        if (rolNombre) {
+          window.sessionStorage.setItem(GOOGLE_ROL_KEY, rolNombre);
+        } else {
+          window.sessionStorage.removeItem(GOOGLE_ROL_KEY);
+        }
+        window.location.assign(url);
+        return;
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectTo);
+      if (result.type !== 'success') return;
+
+      await completeGoogleSession(result.url, rolNombre);
+    },
+    [completeGoogleSession],
+  );
 
   const updateProfile = useCallback(
     async (payload: UpdateProfilePayload) => {
@@ -180,6 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       signInWithGoogle,
+      completeGoogleSession,
       updateProfile,
       signOut,
     }),
@@ -190,6 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       signInWithGoogle,
+      completeGoogleSession,
       updateProfile,
       signOut,
     ],
