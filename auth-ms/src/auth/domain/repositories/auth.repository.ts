@@ -30,6 +30,13 @@ export interface CreateUsuarioData {
   estado?: string;
 }
 
+export interface UpdatePersonaData {
+  nombres?: string;
+  apellidos?: string;
+  correo?: string | null;
+  fechaNacimiento?: string | null;
+}
+
 /**
  * Puerto del dominio que abstrae TODA interacción con Supabase: tanto Supabase
  * Auth como las tablas rol/persona/usuario. Ningún caso de uso ni controlador
@@ -69,6 +76,10 @@ export abstract class AuthRepository {
 
   abstract createPersona(data: CreatePersonaData): Promise<Persona>;
   abstract createUsuario(data: CreateUsuarioData): Promise<Usuario>;
+  abstract updatePersona(
+    personaId: string,
+    data: UpdatePersonaData,
+  ): Promise<Persona>;
 
   abstract findUsuarioByAuthId(authId: string): Promise<Usuario | null>;
   abstract findProfileByAuthId(authId: string): Promise<UserProfile | null>;

@@ -11,7 +11,12 @@ import {
 import { authApi } from '../lib/api';
 import { parseTokensFromUrl } from '../lib/parse-tokens';
 import { SESSION_KEY, sessionStorage } from '../lib/session-storage';
-import { AuthSessionDto, RegisterPayload, UserProfile } from '../lib/types';
+import {
+  AuthSessionDto,
+  RegisterPayload,
+  UpdateProfilePayload,
+  UserProfile,
+} from '../lib/types';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -21,7 +26,8 @@ interface AuthContextValue {
   loading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (payload: RegisterPayload) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (rolNombre?: string) => Promise<void>;
+  updateProfile: (payload: UpdateProfilePayload) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -120,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(nextProfile);
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (rolNombre?: string) => {
     const redirectTo = Linking.createURL('auth-callback');
     const { url } = await authApi.googleUrl(redirectTo);
 
@@ -143,11 +149,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { profile: nextProfile } = await authApi.googleCallback(
       tokens.accessToken,
+      rolNombre,
     );
     await writeSession(dto);
     setProfile(nextProfile);
     setSession(dto); // Actualizar sesión al final para disparar redirecciones
   }, []);
+
+  const updateProfile = useCallback(
+    async (payload: UpdateProfilePayload) => {
+      const current = await readSession();
+      if (!current) throw new Error('No hay sesión activa');
+      const nextProfile = await authApi.updateMe(current.accessToken, payload);
+      setProfile(nextProfile);
+    },
+    [],
+  );
 
   const signOut = useCallback(async () => {
     await deleteSession();
@@ -163,6 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       signInWithGoogle,
+      updateProfile,
       signOut,
     }),
     [
@@ -172,6 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       signInWithGoogle,
+      updateProfile,
       signOut,
     ],
   );
