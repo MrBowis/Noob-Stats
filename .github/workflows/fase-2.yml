@@ -97,18 +97,22 @@ jobs:
           name: coverage-frontend
           path: frontend/coverage
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
+      # sonarcloud-github-action está deprecada y su scanner corre sobre Java
+      # 17, que SonarQube Cloud ya no admite. sonarqube-scan-action es su
+      # sustituto directo y usa un scanner sobre Java 21+.
+      # No hace falta SONAR_HOST_URL: por defecto apunta a SonarQube Cloud.
+      - name: SonarQube Cloud Scan
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      - name: "Telegram · SonarCloud"
+      - name: "Telegram · SonarQube Cloud"
         if: always()
         run: |
           STATUS="${{ job.status }}"
           [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
-          MSG="$ICON <b>Fase 2 · SonarCloud</b>
+          MSG="$ICON <b>Fase 2 · SonarQube Cloud</b>
           Estado: <b>$STATUS</b>
           Repo: ${{ github.repository }}
           Rama: <code>${{ github.ref_name }}</code>
