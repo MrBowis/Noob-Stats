@@ -1,0 +1,93 @@
+# ============================================================
+# Noob Stats — pila completa (4 microservicios + frontend)
+#
+# El frontend expone el único puerto público (80) y hace de pasarela:
+# los microservicios sólo son accesibles desde la red interna de Docker,
+# así que en EC2 basta con tener abiertos los puertos 22 y 80.
+#
+#   docker compose up -d --build
+#
+# Las variables salen del archivo .env de esta misma carpeta (ver
+# .env.example). Ese archivo NO se versiona: créalo en el servidor.
+# ============================================================
+
+x-supabase: &supabase
+  SUPABASE_URL: ${SUPABASE_URL:?falta SUPABASE_URL}
+  SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?falta SUPABASE_ANON_KEY}
+  SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?falta SUPABASE_SERVICE_ROLE_KEY}
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  networks: [noobstats]
+
+services:
+  auth-ms:
+    <<: *service-defaults
+    build:
+      context: ./auth-ms
+    container_name: noobstats-auth-ms
+    environment:
+      <<: *supabase
+      PORT: 3001
+      # Mismo origen que el frontend: la pasarela nginx reenvía las llamadas.
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+
+  equipos-ms:
+    <<: *service-defaults
+    build:
+      context: ./equipos-ms
+    container_name: noobstats-equipos-ms
+    environment:
+      <<: *supabase
+      PORT: 3002
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+
+  admin-ms:
+    <<: *service-defaults
+    build:
+      context: ./admin-ms
+    container_name: noobstats-admin-ms
+    environment:
+      <<: *supabase
+      PORT: 3003
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+
+  # El directorio se llama futbolista-ms; el paquete y el servicio, jugadores-ms.
+  jugadores-ms:
+    <<: *service-defaults
+    build:
+      context: ./futbolista-ms
+    container_name: noobstats-jugadores-ms
+    environment:
+      <<: *supabase
+      PORT: 3004
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+      # Comunicación entre servicios por la red interna de Docker.
+      EQUIPOS_API_URL: http://equipos-ms:3002
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-Perfil}
+    depends_on:
+      - equipos-ms
+
+  frontend:
+    <<: *service-defaults
+    build:
+      context: ./frontend
+      args:
+        # Rutas relativas: nginx resuelve /api/* contra los microservicios.
+        EXPO_PUBLIC_AUTH_API_URL: /api/auth
+        EXPO_PUBLIC_EQUIPOS_API_URL: /api/equipos
+        EXPO_PUBLIC_ADMIN_API_URL: /api/admin
+        EXPO_PUBLIC_JUGADORES_API_URL: /api/jugadores
+        EXPO_PUBLIC_AUTH_REDIRECT_SCHEME: ${EXPO_PUBLIC_AUTH_REDIRECT_SCHEME:-noobstats}
+    container_name: noobstats-frontend
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - auth-ms
+      - equipos-ms
+      - admin-ms
+      - jugadores-ms
+
+networks:
+  noobstats:
+    driver: bridge

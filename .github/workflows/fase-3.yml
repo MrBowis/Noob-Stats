@@ -1,38 +1,143 @@
-name: "Fase 3 · Deploy"
+name: "Fase 3 · Deploy EC2"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Disparado por Fase 2 vía workflow_dispatch sobre la rama main.
+#
+# Copia el repositorio a la instancia EC2 por SSH y levanta la pila con
+# docker compose. Secretos necesarios: EC2_HOST, EC2_USER, EC2_SSH_KEY.
+#
+# El archivo .env con las credenciales de Supabase vive EN el servidor
+# (~/noobstats/.env) y nunca se sobrescribe desde aquí.
 # ─────────────────────────────────────────────────────────────────────────────
 on:
   workflow_dispatch:
 
+env:
+  REMOTE_DIR: ~/noobstats
+
 jobs:
   deploy:
-    name: "Deploy"
+    name: "Deploy → EC2"
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy auth-ms → Render
-        run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}")
-          echo "Render response: $response"
-          [[ "$response" == "200" || "$response" == "201" ]] || exit 1
+      - uses: actions/checkout@v4
 
-      - name: Deploy frontend → Vercel
+      - name: Configurar clave SSH
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}")
-          echo "Vercel response: $response"
-          [[ "$response" == "200" || "$response" == "201" ]] || exit 1
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: "Telegram · Fase 3 · Deploy"
+      - name: Comprobar Docker en la instancia
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" '
+            set -e
+            command -v docker >/dev/null || { echo "::error::Docker no está instalado en la instancia"; exit 1; }
+            docker compose version >/dev/null || { echo "::error::Falta el plugin docker compose (v2)"; exit 1; }
+            mkdir -p ~/noobstats
+          '
+
+      - name: Sincronizar el código
+        # Se envía por tar en lugar de rsync: rsync tendría que estar instalado
+        # también en la instancia y no viene de serie en Amazon Linux.
+        #
+        # El código se extrae en un directorio nuevo y se intercambia al final,
+        # de modo que el .env con los secretos (que vive en el servidor) se
+        # conserva y no queda basura de despliegues anteriores.
+        run: |
+          tar -czf - \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='coverage' \
+            --exclude='.expo' \
+            --exclude='.env' \
+            . \
+          | ssh -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" '
+              set -e
+              rm -rf ~/noobstats.new ~/noobstats.old
+              mkdir -p ~/noobstats.new
+              tar -xzf - -C ~/noobstats.new
+
+              # Conserva el .env con los secretos, que sólo existe en el servidor.
+              if [ -f ~/noobstats/.env ]; then
+                cp ~/noobstats/.env ~/noobstats.new/.env
+              fi
+
+              if [ -d ~/noobstats ]; then
+                mv ~/noobstats ~/noobstats.old
+              fi
+              mv ~/noobstats.new ~/noobstats
+              rm -rf ~/noobstats.old
+            '
+
+      - name: Levantar la pila
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" '
+            set -e
+            cd ~/noobstats
+
+            if [ ! -f .env ]; then
+              echo "::error::Falta ~/noobstats/.env en la instancia. Créalo a partir de .env.example."
+              exit 1
+            fi
+
+            docker compose up -d --build --remove-orphans
+            docker image prune -f
+          '
+
+      - name: Verificar el despliegue
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" '
+            set -e
+            cd ~/noobstats
+
+            echo "Esperando a que los contenedores estén sanos..."
+            for i in $(seq 1 30); do
+              sin_salud=$(docker compose ps --format "{{.Name}} {{.Status}}" \
+                | grep -Ev "healthy" | wc -l)
+              [ "$sin_salud" -eq 0 ] && break
+              sleep 5
+            done
+
+            docker compose ps --format "table {{.Name}}\t{{.Status}}"
+
+            if [ "$sin_salud" -ne 0 ]; then
+              echo "::error::Hay contenedores que no llegaron a estado healthy"
+              docker compose logs --tail 40
+              exit 1
+            fi
+
+            # Comprobación real de extremo a extremo a través de la pasarela.
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/)
+            [ "$code" = "200" ] || { echo "::error::El frontend respondió $code"; exit 1; }
+
+            for ruta in auth/ equipos/ admin/ jugadores/; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost/api/$ruta")
+              # Sin token, los microservicios deben contestar 401 (no 502).
+              case "$code" in
+                401|404|200) echo "  /api/$ruta -> $code" ;;
+                *) echo "::error::/api/$ruta respondió $code"; exit 1 ;;
+              esac
+            done
+          '
+
+      - name: Limpiar credenciales
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: "Telegram · Fase 3 · Deploy EC2"
         if: always()
         run: |
           STATUS="${{ job.status }}"
           [[ "$STATUS" == "success" ]] && ICON="🚀" || ICON="💥"
-          MSG="$ICON <b>Fase 3 · Deploy</b>
+          MSG="$ICON <b>Fase 3 · Deploy EC2</b>
           Estado: <b>$STATUS</b>
           Repo: ${{ github.repository }}
           Rama: <code>${{ github.ref_name }}</code>
-          Commit: <code>${GITHUB_SHA:0:7}</code>"
+          Commit: <code>${GITHUB_SHA:0:7}</code>
+          URL: http://${{ secrets.EC2_HOST }}"
           curl -s -X POST \
             "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \

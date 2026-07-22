@@ -6,6 +6,7 @@ import { LoginWithEmailUseCase } from './application/login-with-email.use-case';
 import { LoginWithGoogleUseCase } from './application/login-with-google.use-case';
 import { RefreshTokenUseCase } from './application/refresh-token.use-case';
 import { RegisterWithEmailUseCase } from './application/register-with-email.use-case';
+import { UpdateProfileUseCase } from './application/update-profile.use-case';
 import { AuthRepository } from './domain/repositories/auth.repository';
 import { SupabaseAuthRepository } from './infrastructure/supabase-auth.repository';
 import { AuthController } from './presentation/auth.controller';
@@ -23,6 +24,7 @@ import { SupabaseAuthGuard } from './presentation/guards/supabase-auth.guard';
     GetGoogleAuthUrlUseCase,
     GetProfileUseCase,
     RefreshTokenUseCase,
+    UpdateProfileUseCase,
     SupabaseAuthGuard,
     { provide: APP_FILTER, useClass: DomainExceptionFilter },
   ],

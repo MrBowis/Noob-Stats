@@ -23,6 +23,7 @@ import {
   CreateUsuarioData,
   SignInResult,
   SignUpResult,
+  UpdatePersonaData,
 } from '../domain/repositories/auth.repository';
 
 interface PersonaRow {
@@ -220,6 +221,32 @@ export class SupabaseAuthRepository extends AuthRepository {
       throw new AuthProviderError(error?.message ?? 'No se pudo crear Usuario');
     }
     return this.mapUsuario(data);
+  }
+
+  async updatePersona(
+    personaId: string,
+    input: UpdatePersonaData,
+  ): Promise<Persona> {
+    const patch: Record<string, unknown> = {};
+    if (input.nombres !== undefined) patch.nombres = input.nombres;
+    if (input.apellidos !== undefined) patch.apellidos = input.apellidos;
+    if (input.correo !== undefined) patch.correo = input.correo;
+    if (input.fechaNacimiento !== undefined) {
+      patch.fecha_nacimiento = input.fechaNacimiento;
+    }
+
+    const { data, error } = await this.dbClient
+      .from('persona')
+      .update(patch)
+      .eq('id', personaId)
+      .select('*')
+      .single<PersonaRow>();
+    if (error || !data) {
+      throw new AuthProviderError(
+        error?.message ?? 'No se pudo actualizar Persona',
+      );
+    }
+    return this.mapPersona(data);
   }
 
   async findUsuarioByAuthId(authId: string): Promise<Usuario | null> {

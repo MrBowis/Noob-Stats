@@ -10,6 +10,11 @@ import { splitFullName } from './name.util';
 export interface LoginWithGoogleInput {
   /** Access token de Supabase obtenido tras el flujo OAuth de Google. */
   accessToken: string;
+  /**
+   * Rol a asignar sólo cuando es el primer ingreso (aprovisionamiento).
+   * Si el usuario ya existe, se ignora y se conserva su rol actual.
+   */
+  rolNombre?: string;
 }
 
 export interface LoginWithGoogleOutput {
@@ -37,7 +42,9 @@ export class LoginWithGoogleUseCase {
     }
 
     // Primera vez que entra con Google: aprovisionar Persona + Usuario.
-    const rol = await this.authRepository.findRolByNombre(DEFAULT_ROLE);
+    const rol = await this.authRepository.findRolByNombre(
+      input.rolNombre ?? DEFAULT_ROLE,
+    );
     if (!rol) {
       throw new RoleNotFoundError();
     }

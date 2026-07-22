@@ -13,38 +13,43 @@ import { CTAButton } from '../../components/CTAButton';
 import { GoogleIcon } from '../../components/GoogleIcon';
 import { TextField } from '../../components/TextField';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { colors, spacing, typography } from '../../theme';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { signInWithEmail, signInWithGoogle } = useAuth();
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const onLogin = async () => {
-    setError(null);
     setLoading(true);
     try {
       await signInWithEmail(email.trim(), password);
       router.replace('/(app)/dashboard');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo iniciar sesión');
+      showToast(
+        e instanceof Error ? e.message : 'No se pudo iniciar sesión',
+        'error',
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const onGoogle = async () => {
-    setError(null);
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
       router.replace('/(app)/dashboard');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo usar Google');
+      showToast(
+        e instanceof Error ? e.message : 'No se pudo usar Google',
+        'error',
+      );
     } finally {
       setGoogleLoading(false);
     }
@@ -84,8 +89,6 @@ export default function LoginScreen() {
             onChangeText={setPassword}
           />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
           <CTAButton
             label="Iniciar sesión"
             onPress={onLogin}
@@ -124,11 +127,6 @@ const styles = StyleSheet.create({
   header: { marginBottom: spacing.xl },
   subtitle: { marginTop: spacing.sm },
   cta: { marginTop: spacing.md },
-  error: {
-    ...typography.body,
-    color: colors.live,
-    marginBottom: spacing.sm,
-  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',

@@ -16,47 +16,49 @@ permissions:
 
 jobs:
   lint:
-    name: "Deps & Lint"
+    name: "Deps & Lint · ${{ matrix.project }}"
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - auth-ms
+          - equipos-ms
+          - admin-ms
+          - futbolista-ms
+          - frontend
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Node 22: @supabase/supabase-js requiere WebSocket nativo, que Node 20
+      # no trae. Es la misma versión que usan las imágenes de Docker.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
-          cache-dependency-path: |
-            auth-ms/package-lock.json
-            frontend/package-lock.json
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
 
-      - name: auth-ms · install
-        working-directory: auth-ms
+      - name: Install
+        working-directory: ${{ matrix.project }}
         run: npm ci
 
-      - name: auth-ms · lint
-        working-directory: auth-ms
+      - name: Lint
+        working-directory: ${{ matrix.project }}
         run: npm run lint
 
-      - name: frontend · install
-        working-directory: frontend
-        run: npm ci
-
-      - name: frontend · lint
-        working-directory: frontend
-        run: npm run lint
-
-      - name: frontend · typecheck
+      - name: Typecheck
+        if: matrix.project == 'frontend'
         working-directory: frontend
         run: npm run typecheck
 
-      - name: "Telegram · Fase 1"
+      - name: "Telegram · Fase 1 · ${{ matrix.project }}"
         if: always()
         run: |
           STATUS="${{ job.status }}"
           [[ "$STATUS" == "success" ]] && ICON="✅" || ICON="❌"
-          MSG="$ICON <b>Fase 1 · Deps &amp; Lint</b>
+          MSG="$ICON <b>Fase 1 · Deps &amp; Lint · ${{ matrix.project }}</b>
           Estado: <b>$STATUS</b>
           Repo: ${{ github.repository }}
           Rama: <code>${{ github.ref_name }}</code>
@@ -67,7 +69,7 @@ jobs:
             -d "$(jq -nc --arg c "${{ secrets.TELEGRAM_CHAT_ID }}" --arg m "$MSG" \
               '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
-  # Solo en push (no en PR) y solo si lint pasó
+  # Solo en push (no en PR) y solo si lint pasó en todos los proyectos
   promote-and-trigger:
     name: "Merge dev→test · Disparar Fase 2"
     needs: lint
