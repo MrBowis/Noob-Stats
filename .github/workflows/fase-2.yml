@@ -144,6 +144,7 @@ jobs:
           SUPABASE_URL=http://build-placeholder
           SUPABASE_ANON_KEY=build-placeholder
           SUPABASE_SERVICE_ROLE_KEY=build-placeholder
+          GRAFANA_ADMIN_PASSWORD=build-placeholder
           EOF
 
       - name: Build de la pila

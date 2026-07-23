@@ -20,6 +20,24 @@ x-service-defaults: &service-defaults
   restart: unless-stopped
   networks: [noobstats]
 
+# Healthcheck de los microservicios NestJS: Docker marca el contenedor como
+# healthy/unhealthy según responda GET /health.
+x-ms-healthcheck: &ms-healthcheck
+  test:
+    [
+      'CMD',
+      'node',
+      '-e',
+      "fetch('http://127.0.0.1:'+process.env.PORT+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+    ]
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 20s
+
+# Nivel de log estructurado (error|warn|info|debug|verbose).
+x-log-level: &log-level ${LOG_LEVEL:-info}
+
 services:
   auth-ms:
     <<: *service-defaults
@@ -31,6 +49,8 @@ services:
       PORT: 3001
       # Mismo origen que el frontend: la pasarela nginx reenvía las llamadas.
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+      LOG_LEVEL: *log-level
+    healthcheck: *ms-healthcheck
 
   equipos-ms:
     <<: *service-defaults
@@ -41,6 +61,8 @@ services:
       <<: *supabase
       PORT: 3002
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+      LOG_LEVEL: *log-level
+    healthcheck: *ms-healthcheck
 
   admin-ms:
     <<: *service-defaults
@@ -51,6 +73,8 @@ services:
       <<: *supabase
       PORT: 3003
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+      LOG_LEVEL: *log-level
+    healthcheck: *ms-healthcheck
 
   # El directorio se llama futbolista-ms; el paquete y el servicio, jugadores-ms.
   jugadores-ms:
@@ -65,6 +89,8 @@ services:
       # Comunicación entre servicios por la red interna de Docker.
       EQUIPOS_API_URL: http://equipos-ms:3002
       SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-Perfil}
+      LOG_LEVEL: *log-level
+    healthcheck: *ms-healthcheck
     depends_on:
       - equipos-ms
 
@@ -88,6 +114,108 @@ services:
       - admin-ms
       - jugadores-ms
 
+  # ==========================================================
+  # Observabilidad. Prometheus, Loki, cAdvisor, Node Exporter y
+  # Alloy NO publican puertos: sólo son accesibles dentro de la
+  # red de Docker. Únicamente Grafana expone un puerto (con auth).
+  # ==========================================================
+
+  # Métricas del host EC2 (CPU, memoria, disco, red, load average).
+  node-exporter:
+    <<: *service-defaults
+    image: prom/node-exporter:v1.8.2
+    container_name: noobstats-node-exporter
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+
+  # Métricas de los contenedores Docker (CPU, RAM, red, disco, reinicios).
+  cadvisor:
+    <<: *service-defaults
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: noobstats-cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+  # Almacén de métricas.
+  prometheus:
+    <<: *service-defaults
+    image: prom/prometheus:v2.55.1
+    container_name: noobstats-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - cadvisor
+      - node-exporter
+
+  # Almacén de logs.
+  loki:
+    <<: *service-defaults
+    image: grafana/loki:3.2.1
+    container_name: noobstats-loki
+    command: ['-config.file=/etc/loki/loki-config.yml']
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+
+  # Recolector de logs de los contenedores hacia Loki.
+  alloy:
+    <<: *service-defaults
+    image: grafana/alloy:v1.5.1
+    container_name: noobstats-alloy
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    depends_on:
+      - loki
+
+  # Visualización. Único servicio de monitoreo con puerto publicado.
+  grafana:
+    <<: *service-defaults
+    image: grafana/grafana:11.3.0
+    container_name: noobstats-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?falta GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - '${GRAFANA_PORT:-3000}:3000'
+    depends_on:
+      - prometheus
+      - loki
+
 networks:
   noobstats:
     driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  alloy_data:
