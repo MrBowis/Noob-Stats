@@ -1,19 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '../../../../components/Badge';
+import { ConfirmDialog } from '../../../../components/ConfirmDialog';
 import { CTAButton } from '../../../../components/CTAButton';
+import { FormScreen } from '../../../../components/FormScreen';
 import { ScreenHeader } from '../../../../components/ScreenHeader';
 import { SelectPills } from '../../../../components/SelectPills';
 import { TextField } from '../../../../components/TextField';
@@ -48,6 +40,7 @@ export default function EditarUsuarioScreen() {
   const [estado, setEstado] = useState<EstadoUsuario>('activo');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -112,21 +105,11 @@ export default function EditarUsuarioScreen() {
   };
 
   const confirmDeactivate = () => {
-    Alert.alert(
-      'Desactivar usuario',
-      'El usuario quedará inactivo (borrado lógico). ¿Continuar?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desactivar',
-          style: 'destructive',
-          onPress: () => void deactivate(),
-        },
-      ],
-    );
+    setConfirmVisible(true);
   };
 
   const deactivate = async () => {
+    setConfirmVisible(false);
     try {
       await adminApi.deactivateUsuario(token, id);
       showToast('Usuario desactivado', 'success');
@@ -140,101 +123,98 @@ export default function EditarUsuarioScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ScreenHeader title="Editar usuario" onBack={() => router.back()} />
+    <FormScreen>
+      <ScreenHeader title="Editar usuario" onBack={() => router.back()} />
 
-          {loading ? (
-            <ActivityIndicator color={colors.accent} style={styles.loader} />
-          ) : (
-            <View>
-              <View style={styles.emailRow}>
-                <Text style={[typography.body, styles.email]}>{email}</Text>
-                <Badge
-                  label={estado}
-                  tone={estado === 'activo' ? 'success' : 'danger'}
-                />
-              </View>
+      {loading ? (
+        <ActivityIndicator color={colors.accent} style={styles.loader} />
+      ) : (
+        <View>
+          <View style={styles.emailRow}>
+            <Text style={[typography.body, styles.email]}>{email}</Text>
+            <Badge
+              label={estado}
+              tone={estado === 'activo' ? 'success' : 'danger'}
+            />
+          </View>
 
-              <TextField
-                label="Nombres"
-                value={nombres}
-                onChangeText={setNombres}
-              />
-              <TextField
-                label="Apellidos"
-                value={apellidos}
-                onChangeText={setApellidos}
-              />
-              <TextField
-                label="Correo de contacto"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={correo}
-                onChangeText={setCorreo}
-              />
-              <TextField
-                label="Fecha de nacimiento"
-                placeholder="AAAA-MM-DD"
-                autoCapitalize="none"
-                value={fechaNacimiento}
-                onChangeText={setFechaNacimiento}
-              />
-              {rolesOptions.length > 0 ? (
-                <SelectPills
-                  label="Rol"
-                  options={rolesOptions}
-                  value={rolNombre}
-                  onChange={setRolNombre}
-                />
-              ) : null}
-              <SelectPills
-                label="Estado"
-                options={ESTADOS}
-                value={estado}
-                onChange={setEstado}
-              />
+          <TextField
+            label="Nombres"
+            value={nombres}
+            onChangeText={setNombres}
+          />
+          <TextField
+            label="Apellidos"
+            value={apellidos}
+            onChangeText={setApellidos}
+          />
+          <TextField
+            label="Correo de contacto"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={correo}
+            onChangeText={setCorreo}
+          />
+          <TextField
+            label="Fecha de nacimiento"
+            placeholder="AAAA-MM-DD"
+            autoCapitalize="none"
+            value={fechaNacimiento}
+            onChangeText={setFechaNacimiento}
+          />
+          {rolesOptions.length > 0 ? (
+            <SelectPills
+              label="Rol"
+              options={rolesOptions}
+              value={rolNombre}
+              onChange={setRolNombre}
+            />
+          ) : null}
+          <SelectPills
+            label="Estado"
+            options={ESTADOS}
+            value={estado}
+            onChange={setEstado}
+          />
 
-              <CTAButton
-                label="Guardar cambios"
-                onPress={onSubmit}
-                loading={saving}
-                style={styles.cta}
-              />
-              {estado === 'activo' ? (
-                <CTAButton
-                  label="Desactivar usuario"
-                  variant="outline"
-                  icon={
-                    <Ionicons
-                      name="person-remove-outline"
-                      size={18}
-                      color={colors.live}
-                    />
-                  }
-                  onPress={confirmDeactivate}
-                  style={styles.cta}
+          <CTAButton
+            label="Guardar cambios"
+            onPress={onSubmit}
+            loading={saving}
+            style={styles.cta}
+          />
+          {estado === 'activo' ? (
+            <CTAButton
+              label="Desactivar usuario"
+              variant="outline"
+              icon={
+                <Ionicons
+                  name="person-remove-outline"
+                  size={18}
+                  color={colors.live}
                 />
-              ) : null}
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              }
+              onPress={confirmDeactivate}
+              style={styles.cta}
+            />
+          ) : null}
+        </View>
+      )}
+
+      <ConfirmDialog
+        visible={confirmVisible}
+        title="Desactivar usuario"
+        message="El usuario quedará inactivo (borrado lógico). ¿Continuar?"
+        confirmLabel="Desactivar"
+        destructive
+        onConfirm={() => void deactivate()}
+        onCancel={() => setConfirmVisible(false)}
+      />
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   loader: { marginTop: spacing.xxl },
   emailRow: {
     flexDirection: 'row',

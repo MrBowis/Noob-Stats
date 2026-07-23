@@ -3,10 +3,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,8 +13,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge } from '../../../../../components/Badge';
 import { Card } from '../../../../../components/Card';
+import { ConfirmDialog } from '../../../../../components/ConfirmDialog';
 import { CTAButton } from '../../../../../components/CTAButton';
 import { DateTimeField } from '../../../../../components/DateTimeField';
+import { FormScreen } from '../../../../../components/FormScreen';
 import { ScreenHeader } from '../../../../../components/ScreenHeader';
 import { SelectPills } from '../../../../../components/SelectPills';
 import { TextField } from '../../../../../components/TextField';
@@ -89,6 +88,7 @@ export default function EditarPartidoScreen() {
   // Modal de registro de eventos
   const [eventoTipo, setEventoTipo] = useState<EventoTipo | null>(null);
   const [minuto, setMinuto] = useState('');
+  const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
 
   /** Estado disciplinario de cada jugador en este partido. */
   const disciplina = useMemo(() => {
@@ -185,21 +185,11 @@ export default function EditarPartidoScreen() {
   };
 
   const confirmDelete = () => {
-    Alert.alert(
-      'Eliminar partido',
-      '¿Seguro que deseas eliminar este partido?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => void remove(),
-        },
-      ],
-    );
+    setConfirmDeleteVisible(true);
   };
 
   const remove = async () => {
+    setConfirmDeleteVisible(false);
     try {
       await equiposApi.deletePartido(token, partidoId);
       showToast('Partido eliminado', 'success');
@@ -300,15 +290,8 @@ export default function EditarPartidoScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
+    <>
+      <FormScreen contentStyle={styles.content}>
           <ScreenHeader
             title={esDueno ? 'Editar partido' : 'Detalle del partido'}
             subtitle={
@@ -504,8 +487,7 @@ export default function EditarPartidoScreen() {
               />
             </View>
           ) : null}
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </FormScreen>
 
       {/* Modal: elegir jugador para el evento */}
       <Modal
@@ -583,13 +565,22 @@ export default function EditarPartidoScreen() {
           </ScrollView>
         </View>
       </Modal>
-    </SafeAreaView>
+
+      <ConfirmDialog
+        visible={confirmDeleteVisible}
+        title="Eliminar partido"
+        message="¿Seguro que deseas eliminar este partido?"
+        confirmLabel="Eliminar"
+        destructive
+        onConfirm={() => void remove()}
+        onCancel={() => setConfirmDeleteVisible(false)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
   content: { padding: spacing.xl, paddingBottom: spacing.xxl },
   loader: { marginTop: spacing.xxl },
   row: { flexDirection: 'row', gap: spacing.md },

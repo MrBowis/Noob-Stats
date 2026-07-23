@@ -1,18 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ConfirmDialog } from '../../../../../components/ConfirmDialog';
 import { CTAButton } from '../../../../../components/CTAButton';
+import { FormScreen } from '../../../../../components/FormScreen';
 import { ScreenHeader } from '../../../../../components/ScreenHeader';
 import { SelectPills } from '../../../../../components/SelectPills';
 import { TextField } from '../../../../../components/TextField';
@@ -51,6 +43,7 @@ export default function EditarMiembroScreen() {
   const [estado, setEstado] = useState<EstadoMiembro>('activo');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -130,17 +123,11 @@ export default function EditarMiembroScreen() {
   };
 
   const confirmRemove = () => {
-    Alert.alert('Quitar jugador', `¿Quitar a ${nombre} del equipo?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Quitar',
-        style: 'destructive',
-        onPress: () => void remove(),
-      },
-    ]);
+    setConfirmVisible(true);
   };
 
   const remove = async () => {
+    setConfirmVisible(false);
     try {
       await equiposApi.removeMiembro(token, id, usuarioId);
       showToast('Jugador quitado del equipo', 'success');
@@ -154,85 +141,82 @@ export default function EditarMiembroScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ScreenHeader title="Editar jugador" onBack={() => router.back()} />
+    <FormScreen>
+      <ScreenHeader title="Editar jugador" onBack={() => router.back()} />
 
-          {loading ? (
-            <ActivityIndicator color={colors.accent} style={styles.loader} />
-          ) : (
-            <View>
-              <Text style={[typography.body, styles.nombre]}>{nombre}</Text>
-              <TextField
-                label="Dorsal"
-                placeholder="10"
-                keyboardType="number-pad"
-                value={dorsal}
-                onChangeText={setDorsal}
+      {loading ? (
+        <ActivityIndicator color={colors.accent} style={styles.loader} />
+      ) : (
+        <View>
+          <Text style={[typography.body, styles.nombre]}>{nombre}</Text>
+          <TextField
+            label="Dorsal"
+            placeholder="10"
+            keyboardType="number-pad"
+            value={dorsal}
+            onChangeText={setDorsal}
+          />
+          <TextField
+            label="Posición"
+            placeholder="Delantero"
+            value={posicion}
+            onChangeText={setPosicion}
+          />
+          <SelectPills
+            label="Estado"
+            options={ESTADOS}
+            value={estado}
+            onChange={setEstado}
+          />
+          <CTAButton
+            label="Guardar cambios"
+            onPress={onSubmit}
+            loading={saving}
+            style={styles.cta}
+          />
+          <CTAButton
+            label="Ver perfil deportivo"
+            variant="outline"
+            icon={
+              <Ionicons
+                name="football-outline"
+                size={18}
+                color={colors.textPrimary}
               />
-              <TextField
-                label="Posición"
-                placeholder="Delantero"
-                value={posicion}
-                onChangeText={setPosicion}
+            }
+            onPress={() => void verPerfilDeportivo()}
+            style={styles.cta}
+          />
+          <CTAButton
+            label="Quitar del equipo"
+            variant="outline"
+            icon={
+              <Ionicons
+                name="person-remove-outline"
+                size={18}
+                color={colors.live}
               />
-              <SelectPills
-                label="Estado"
-                options={ESTADOS}
-                value={estado}
-                onChange={setEstado}
-              />
-              <CTAButton
-                label="Guardar cambios"
-                onPress={onSubmit}
-                loading={saving}
-                style={styles.cta}
-              />
-              <CTAButton
-                label="Ver perfil deportivo"
-                variant="outline"
-                icon={
-                  <Ionicons
-                    name="football-outline"
-                    size={18}
-                    color={colors.textPrimary}
-                  />
-                }
-                onPress={() => void verPerfilDeportivo()}
-                style={styles.cta}
-              />
-              <CTAButton
-                label="Quitar del equipo"
-                variant="outline"
-                icon={
-                  <Ionicons
-                    name="person-remove-outline"
-                    size={18}
-                    color={colors.live}
-                  />
-                }
-                onPress={confirmRemove}
-                style={styles.cta}
-              />
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            }
+            onPress={confirmRemove}
+            style={styles.cta}
+          />
+        </View>
+      )}
+
+      <ConfirmDialog
+        visible={confirmVisible}
+        title="Quitar jugador"
+        message={`¿Quitar a ${nombre} del equipo?`}
+        confirmLabel="Quitar"
+        destructive
+        onConfirm={() => void remove()}
+        onCancel={() => setConfirmVisible(false)}
+      />
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   loader: { marginTop: spacing.xxl },
   nombre: {
     color: colors.textPrimary,

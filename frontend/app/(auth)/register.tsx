@@ -1,16 +1,8 @@
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CTAButton } from '../../components/CTAButton';
+import { FormScreen } from '../../components/FormScreen';
 import { GoogleIcon } from '../../components/GoogleIcon';
 import { IconButton } from '../../components/IconButton';
 import { TextField } from '../../components/TextField';
@@ -97,133 +89,121 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.topBar}>
-            <IconButton
-              accessibilityLabel="Volver"
-              onPress={() => router.back()}
-            />
-          </View>
+    <FormScreen
+      edges={['top', 'bottom', 'left', 'right']}
+      contentStyle={styles.content}
+    >
+      <View style={styles.topBar}>
+        <IconButton accessibilityLabel="Volver" onPress={() => router.back()} />
+      </View>
 
-          <View style={styles.header}>
-            <Text style={typography.overline}>Noob Stats</Text>
-            <Text style={typography.title}>Crear cuenta</Text>
-            <Text style={[typography.body, styles.subtitle]}>
-              Únete y empieza a registrar tu rendimiento.
-            </Text>
-          </View>
+      <View style={styles.header}>
+        <Text style={typography.overline}>Noob Stats</Text>
+        <Text style={typography.title}>Crear cuenta</Text>
+        <Text style={[typography.body, styles.subtitle]}>
+          Únete y empieza a registrar tu rendimiento.
+        </Text>
+      </View>
 
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <TextField
-                label="Nombres"
-                placeholder="Juan"
-                value={nombres}
-                onChangeText={setNombres}
-              />
-            </View>
-            <View style={styles.half}>
-              <TextField
-                label="Apellidos"
-                placeholder="Pérez"
-                value={apellidos}
-                onChangeText={setApellidos}
-              />
-            </View>
-          </View>
-
+      <View style={styles.row}>
+        <View style={styles.half}>
           <TextField
-            label="Correo"
-            placeholder="example@email.com"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
+            label="Nombres"
+            placeholder="Juan"
+            value={nombres}
+            onChangeText={setNombres}
           />
+        </View>
+        <View style={styles.half}>
           <TextField
-            label="Contraseña"
-            placeholder="Mínimo 8 caracteres"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
+            label="Apellidos"
+            placeholder="Pérez"
+            value={apellidos}
+            onChangeText={setApellidos}
           />
-          <TextField
-            label="Confirmar contraseña"
-            placeholder="Repite tu contraseña"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
-          <Text style={[typography.body, styles.hint]}>
-            Debe tener 8+ caracteres, mayúscula, minúscula, número y carácter
-            especial.
-          </Text>
+        </View>
+      </View>
 
-          <Text style={[typography.overline, styles.roleLabel]}>Rol</Text>
-          <View style={styles.roleRow}>
-            {ROLES.map((rol) => {
-              const selected = rolNombre === rol.value;
-              return (
-                <Pressable
-                  key={rol.value}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  onPress={() => setRolNombre(rol.value)}
-                  style={[styles.roleOption, selected && styles.roleOptionSelected]}
-                >
-                  <Text
-                    style={[
-                      typography.buttonLabel,
-                      {
-                        color: selected ? colors.accentText : colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {rol.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+      <TextField
+        label="Correo"
+        placeholder="example@email.com"
+        autoCapitalize="none"
+        keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextField
+        label="Contraseña"
+        placeholder="Mínimo 8 caracteres"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+      />
+      <TextField
+        label="Confirmar contraseña"
+        placeholder="Repite tu contraseña"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+      />
+      <Text style={[typography.body, styles.hint]}>
+        Debe tener 8+ caracteres, mayúscula, minúscula, número y carácter
+        especial.
+      </Text>
 
-          <CTAButton
-            label="Crear cuenta"
-            onPress={onRegister}
-            loading={loading}
-            style={styles.cta}
-          />
-          <CTAButton
-            label="Continuar con Google"
-            variant="outline"
-            icon={<GoogleIcon />}
-            onPress={onGoogle}
-            loading={googleLoading}
-            style={styles.cta}
-          />
+      <Text style={[typography.overline, styles.roleLabel]}>Rol</Text>
+      <View style={styles.roleRow}>
+        {ROLES.map((rol) => {
+          const selected = rolNombre === rol.value;
+          return (
+            <Pressable
+              key={rol.value}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              onPress={() => setRolNombre(rol.value)}
+              style={[styles.roleOption, selected && styles.roleOptionSelected]}
+            >
+              <Text
+                style={[
+                  typography.buttonLabel,
+                  {
+                    color: selected ? colors.accentText : colors.textPrimary,
+                  },
+                ]}
+              >
+                {rol.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-          <View style={styles.footer}>
-            <Text style={typography.body}>¿Ya tienes cuenta? </Text>
-            <Link href="/(auth)/login" style={styles.link}>
-              Inicia sesión
-            </Link>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <CTAButton
+        label="Crear cuenta"
+        onPress={onRegister}
+        loading={loading}
+        style={styles.cta}
+      />
+      <CTAButton
+        label="Continuar con Google"
+        variant="outline"
+        icon={<GoogleIcon />}
+        onPress={onGoogle}
+        loading={googleLoading}
+        style={styles.cta}
+      />
+
+      <View style={styles.footer}>
+        <Text style={typography.body}>¿Ya tienes cuenta? </Text>
+        <Link href="/(auth)/login" style={styles.link}>
+          Inicia sesión
+        </Link>
+      </View>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
   content: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl },
   topBar: { marginBottom: spacing.lg },
   header: { marginBottom: spacing.lg },

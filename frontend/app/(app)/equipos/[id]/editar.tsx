@@ -1,15 +1,8 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { CTAButton } from '../../../../components/CTAButton';
+import { FormScreen } from '../../../../components/FormScreen';
 import { ScreenHeader } from '../../../../components/ScreenHeader';
 import { TextField } from '../../../../components/TextField';
 import { useAuth } from '../../../../context/AuthContext';
@@ -86,66 +79,45 @@ export default function EditarEquipoScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ScreenHeader title="Editar equipo" onBack={() => router.back()} />
+    <FormScreen>
+      <ScreenHeader title="Editar equipo" onBack={() => router.back()} />
 
-          {loading ? (
-            <ActivityIndicator color={colors.accent} style={styles.loader} />
-          ) : (
-            <View>
-              <TextField
-                label="Nombre"
-                value={nombre}
-                onChangeText={setNombre}
-              />
-              <TextField
-                label="Descripción"
-                value={descripcion}
-                onChangeText={setDescripcion}
-              />
-              <TextField
-                label="Categoría"
-                value={categoria}
-                onChangeText={setCategoria}
-              />
-              <TextField
-                label="Ciudad"
-                value={ciudad}
-                onChangeText={setCiudad}
-              />
-              <TextField
-                label="URL del escudo"
-                autoCapitalize="none"
-                keyboardType="url"
-                value={escudoUrl}
-                onChangeText={setEscudoUrl}
-              />
-              <CTAButton
-                label="Guardar cambios"
-                onPress={onSubmit}
-                loading={saving}
-                style={styles.cta}
-              />
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      {loading ? (
+        <ActivityIndicator color={colors.accent} style={styles.loader} />
+      ) : (
+        <View>
+          <TextField label="Nombre" value={nombre} onChangeText={setNombre} />
+          <TextField
+            label="Descripción"
+            value={descripcion}
+            onChangeText={setDescripcion}
+          />
+          <TextField
+            label="Categoría"
+            value={categoria}
+            onChangeText={setCategoria}
+          />
+          <TextField label="Ciudad" value={ciudad} onChangeText={setCiudad} />
+          <TextField
+            label="URL del escudo"
+            autoCapitalize="none"
+            keyboardType="url"
+            value={escudoUrl}
+            onChangeText={setEscudoUrl}
+          />
+          <CTAButton
+            label="Guardar cambios"
+            onPress={onSubmit}
+            loading={saving}
+            style={styles.cta}
+          />
+        </View>
+      )}
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   loader: { marginTop: spacing.xxl },
   cta: { marginTop: spacing.md },
 });

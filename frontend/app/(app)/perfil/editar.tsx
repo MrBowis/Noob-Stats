@@ -1,20 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 import { CTAButton } from '../../../components/CTAButton';
 import { DateField } from '../../../components/DateField';
+import { FormScreen } from '../../../components/FormScreen';
 import { ScreenHeader } from '../../../components/ScreenHeader';
 import { TextField } from '../../../components/TextField';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
-import { colors, spacing } from '../../../theme';
+import { spacing } from '../../../theme';
 
 export default function EditarPerfilScreen() {
   const router = useRouter();
@@ -55,58 +49,42 @@ export default function EditarPerfilScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ScreenHeader
-            title="Editar información"
-            onBack={() => router.back()}
-          />
-          <View>
-            <TextField
-              label="Nombres"
-              value={nombres}
-              onChangeText={setNombres}
-            />
-            <TextField
-              label="Apellidos"
-              value={apellidos}
-              onChangeText={setApellidos}
-            />
-            <TextField
-              label="Correo"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={correo}
-              onChangeText={setCorreo}
-            />
-            <DateField
-              label="Fecha de nacimiento"
-              value={fechaNacimiento || null}
-              onChange={(v) => setFechaNacimiento(v ?? '')}
-            />
-            <CTAButton
-              label="Guardar cambios"
-              onPress={onSubmit}
-              loading={loading}
-              style={styles.cta}
-            />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <FormScreen>
+      <ScreenHeader title="Editar información" onBack={() => router.back()} />
+      <View>
+        <TextField
+          label="Nombres"
+          value={nombres}
+          onChangeText={setNombres}
+        />
+        <TextField
+          label="Apellidos"
+          value={apellidos}
+          onChangeText={setApellidos}
+        />
+        <TextField
+          label="Correo"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={correo}
+          onChangeText={setCorreo}
+        />
+        <DateField
+          label="Fecha de nacimiento"
+          value={fechaNacimiento || null}
+          onChange={(v) => setFechaNacimiento(v ?? '')}
+        />
+        <CTAButton
+          label="Guardar cambios"
+          onPress={onSubmit}
+          loading={loading}
+          style={styles.cta}
+        />
+      </View>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   cta: { marginTop: spacing.md },
 });

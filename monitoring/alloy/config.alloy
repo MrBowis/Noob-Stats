@@ -1,0 +1,56 @@
+// Grafana Alloy descubre los contenedores Docker, sigue sus logs y los envía
+// a Loki. No se instala nada en el host: Alloy corre como contenedor y lee el
+// socket de Docker (montado en modo solo lectura).
+
+// 1. Descubrimiento de contenedores por el socket de Docker.
+discovery.docker "contenedores" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// 2. Etiquetas a partir de los metadatos de cada contenedor.
+discovery.relabel "contenedores" {
+  targets = discovery.docker.contenedores.targets
+
+  // Nombre del contenedor (Docker lo entrega con una barra inicial).
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  // Nombre del servicio de docker-compose → etiqueta `service`.
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+}
+
+// 3. Seguimiento de los logs de todos los contenedores descubiertos.
+loki.source.docker "contenedores" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.contenedores.output
+  relabel_rules = discovery.relabel.contenedores.rules
+  forward_to    = [loki.process.estructura.receiver]
+}
+
+// 4. Los microservicios emiten JSON: se extrae el nivel como etiqueta (baja
+//    cardinalidad). El requestId queda dentro de la línea y se puede filtrar
+//    en Grafana con `| json | requestId="..."` sin convertirlo en etiqueta.
+loki.process "estructura" {
+  forward_to = [loki.write.loki.receiver]
+
+  stage.json {
+    expressions = { level = "level" }
+  }
+
+  stage.labels {
+    values = { level = "level" }
+  }
+}
+
+// 5. Envío a Loki.
+loki.write "loki" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

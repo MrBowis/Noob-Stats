@@ -1,0 +1,35 @@
+# Prometheus recolecta métricas de los microservicios NestJS, de cAdvisor
+# (contenedores) y de Node Exporter (host EC2). Se usan nombres de servicio de
+# la red interna de Docker, nunca IPs públicas.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Host EC2 (CPU, RAM, disco, red, load average).
+  - job_name: node-exporter
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Contenedores Docker (CPU, RAM, red RX/TX, disco, reinicios, estado).
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # Métricas HTTP de cada microservicio NestJS. Cada serie ya trae la etiqueta
+  # `service`, así que las consultas de Grafana distinguen los servicios por ahí.
+  - job_name: nestjs
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['auth-ms:3001']
+        labels: { service: auth-ms }
+      - targets: ['equipos-ms:3002']
+        labels: { service: equipos-ms }
+      - targets: ['admin-ms:3003']
+        labels: { service: admin-ms }
+      - targets: ['jugadores-ms:3004']
+        labels: { service: jugadores-ms }

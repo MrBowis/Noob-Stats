@@ -1,20 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 import { CTAButton } from '../../../../components/CTAButton';
+import { FormScreen } from '../../../../components/FormScreen';
 import { ScreenHeader } from '../../../../components/ScreenHeader';
 import { TextField } from '../../../../components/TextField';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../context/ToastContext';
 import { adminApi } from '../../../../lib/api';
-import { colors, spacing } from '../../../../theme';
+import { spacing } from '../../../../theme';
 
 export default function NuevoRolScreen() {
   const router = useRouter();
@@ -50,45 +44,32 @@ export default function NuevoRolScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ScreenHeader title="Crear rol" onBack={() => router.back()} />
-          <View>
-            <TextField
-              label="Nombre del rol"
-              placeholder="Arbitro"
-              value={nombreRol}
-              onChangeText={setNombreRol}
-            />
-            <TextField
-              label="Descripción (opcional)"
-              placeholder="Gestiona el arbitraje de los partidos"
-              value={descripcion}
-              onChangeText={setDescripcion}
-            />
-            <CTAButton
-              label="Crear rol"
-              onPress={onSubmit}
-              loading={loading}
-              style={styles.cta}
-            />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <FormScreen>
+      <ScreenHeader title="Crear rol" onBack={() => router.back()} />
+      <View>
+        <TextField
+          label="Nombre del rol"
+          placeholder="Arbitro"
+          value={nombreRol}
+          onChangeText={setNombreRol}
+        />
+        <TextField
+          label="Descripción (opcional)"
+          placeholder="Gestiona el arbitraje de los partidos"
+          value={descripcion}
+          onChangeText={setDescripcion}
+        />
+        <CTAButton
+          label="Crear rol"
+          onPress={onSubmit}
+          loading={loading}
+          style={styles.cta}
+        />
+      </View>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   cta: { marginTop: spacing.md },
 });
