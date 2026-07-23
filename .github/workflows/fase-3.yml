@@ -94,8 +94,10 @@ jobs:
             cd ~/noobstats
 
             echo "Esperando a que los contenedores estén sanos..."
+            SERVICIOS="auth-ms equipos-ms admin-ms jugadores-ms frontend"
             for i in $(seq 1 30); do
               sin_salud=$(docker compose ps --format "{{.Name}} {{.Status}}" \
+                | grep -E "$(echo "$SERVICIOS" | tr " " "|")" \
                 | grep -Ev "healthy" | wc -l)
               [ "$sin_salud" -eq 0 ] && break
               sleep 5
