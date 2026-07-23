@@ -10,7 +10,6 @@ import {
   EquiposGatewayError,
   InvalidFotoError,
   InvalidLesionFechasError,
-  InvalidPosicionPrincipalError,
   JugadorAlreadyExistsError,
   JugadorNotFoundError,
   JugadoresProviderError,
@@ -53,7 +52,6 @@ export class DomainExceptionFilter implements ExceptionFilter {
       return HttpStatus.CONFLICT;
     }
     if (
-      exception instanceof InvalidPosicionPrincipalError ||
       exception instanceof InvalidLesionFechasError ||
       exception instanceof InvalidFotoError
     ) {

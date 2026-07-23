@@ -1,17 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ConfirmDialog } from '../../../../components/ConfirmDialog';
 import { CTAButton } from '../../../../components/CTAButton';
+import { FormScreen } from '../../../../components/FormScreen';
 import { ScreenHeader } from '../../../../components/ScreenHeader';
 import { TextField } from '../../../../components/TextField';
 import { useAuth } from '../../../../context/AuthContext';
@@ -30,6 +23,7 @@ export default function EditarRolScreen() {
   const [descripcion, setDescripcion] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -79,13 +73,11 @@ export default function EditarRolScreen() {
   };
 
   const confirmDelete = () => {
-    Alert.alert('Eliminar rol', '¿Seguro que deseas eliminar este rol?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => void remove() },
-    ]);
+    setConfirmVisible(true);
   };
 
   const remove = async () => {
+    setConfirmVisible(false);
     try {
       await adminApi.deleteRol(token, id);
       showToast('Rol eliminado', 'success');
@@ -99,62 +91,53 @@ export default function EditarRolScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ScreenHeader title="Editar rol" onBack={() => router.back()} />
+    <FormScreen>
+      <ScreenHeader title="Editar rol" onBack={() => router.back()} />
 
-          {loading ? (
-            <ActivityIndicator color={colors.accent} style={styles.loader} />
-          ) : (
-            <View>
-              <TextField
-                label="Nombre del rol"
-                value={nombreRol}
-                onChangeText={setNombreRol}
-              />
-              <TextField
-                label="Descripción"
-                value={descripcion}
-                onChangeText={setDescripcion}
-              />
-              <CTAButton
-                label="Guardar cambios"
-                onPress={onSubmit}
-                loading={saving}
-                style={styles.cta}
-              />
-              <CTAButton
-                label="Eliminar rol"
-                variant="outline"
-                icon={
-                  <Ionicons
-                    name="trash-outline"
-                    size={18}
-                    color={colors.live}
-                  />
-                }
-                onPress={confirmDelete}
-                style={styles.cta}
-              />
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      {loading ? (
+        <ActivityIndicator color={colors.accent} style={styles.loader} />
+      ) : (
+        <View>
+          <TextField
+            label="Nombre del rol"
+            value={nombreRol}
+            onChangeText={setNombreRol}
+          />
+          <TextField
+            label="Descripción"
+            value={descripcion}
+            onChangeText={setDescripcion}
+          />
+          <CTAButton
+            label="Guardar cambios"
+            onPress={onSubmit}
+            loading={saving}
+            style={styles.cta}
+          />
+          <CTAButton
+            label="Eliminar rol"
+            variant="outline"
+            icon={<Ionicons name="trash-outline" size={18} color={colors.live} />}
+            onPress={confirmDelete}
+            style={styles.cta}
+          />
+        </View>
+      )}
+
+      <ConfirmDialog
+        visible={confirmVisible}
+        title="Eliminar rol"
+        message="¿Seguro que deseas eliminar este rol?"
+        confirmLabel="Eliminar"
+        destructive
+        onConfirm={() => void remove()}
+        onCancel={() => setConfirmVisible(false)}
+      />
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   loader: { marginTop: spacing.xxl },
   cta: { marginTop: spacing.md },
 });

@@ -47,11 +47,6 @@ export class PosicionAlreadyExistsError extends DomainError {
 }
 
 // ---- Petición inválida (400) ----
-export class InvalidPosicionPrincipalError extends DomainError {
-  constructor(message = 'El jugador ya tiene una posición principal') {
-    super(message);
-  }
-}
 export class InvalidFotoError extends DomainError {
   constructor(message = 'La foto de perfil no es válida') {
     super(message);

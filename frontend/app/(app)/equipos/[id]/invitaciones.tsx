@@ -2,7 +2,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -13,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, BadgeTone } from '../../../../components/Badge';
 import { Card } from '../../../../components/Card';
+import { ConfirmDialog } from '../../../../components/ConfirmDialog';
 import { EmptyState } from '../../../../components/EmptyState';
 import { ScreenHeader } from '../../../../components/ScreenHeader';
 import { useAuth } from '../../../../context/AuthContext';
@@ -45,6 +45,8 @@ export default function InvitacionesEquipoScreen() {
   const [invitaciones, setInvitaciones] = useState<InvitacionDetalle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [invitacionACancelar, setInvitacionACancelar] =
+    useState<InvitacionDetalle | null>(null);
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh') => {
@@ -75,17 +77,11 @@ export default function InvitacionesEquipoScreen() {
   );
 
   const confirmCancel = (inv: InvitacionDetalle) => {
-    Alert.alert('Cancelar invitación', `¿Cancelar la invitación a ${inv.jugadorNombres}?`, [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Cancelar invitación',
-        style: 'destructive',
-        onPress: () => void cancel(inv.id),
-      },
-    ]);
+    setInvitacionACancelar(inv);
   };
 
   const cancel = async (invitacionId: string) => {
+    setInvitacionACancelar(null);
     try {
       await equiposApi.cancelarInvitacion(token, invitacionId);
       showToast('Invitación cancelada', 'success');
@@ -159,6 +155,23 @@ export default function InvitacionesEquipoScreen() {
           />
         )}
       </View>
+
+      <ConfirmDialog
+        visible={invitacionACancelar !== null}
+        title="Cancelar invitación"
+        message={
+          invitacionACancelar
+            ? `¿Cancelar la invitación a ${invitacionACancelar.jugadorNombres}?`
+            : undefined
+        }
+        confirmLabel="Cancelar invitación"
+        cancelLabel="No"
+        destructive
+        onConfirm={() => {
+          if (invitacionACancelar) void cancel(invitacionACancelar.id);
+        }}
+        onCancel={() => setInvitacionACancelar(null)}
+      />
     </SafeAreaView>
   );
 }
