@@ -1,16 +1,8 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { CTAButton } from '../../../../components/CTAButton';
+import { FormScreen } from '../../../../components/FormScreen';
 import { ScreenHeader } from '../../../../components/ScreenHeader';
 import { SelectPills } from '../../../../components/SelectPills';
 import { TextField } from '../../../../components/TextField';
@@ -93,83 +85,70 @@ export default function NuevoUsuarioScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ScreenHeader
-            title="Crear usuario"
-            subtitle="Registra el usuario de dominio con su rol."
-            onBack={() => router.back()}
-          />
+    <FormScreen>
+      <ScreenHeader
+        title="Crear usuario"
+        subtitle="Registra el usuario de dominio con su rol."
+        onBack={() => router.back()}
+      />
 
-          {loadingRoles ? (
-            <ActivityIndicator color={colors.accent} style={styles.loader} />
+      {loadingRoles ? (
+        <ActivityIndicator color={colors.accent} style={styles.loader} />
+      ) : (
+        <View>
+          <TextField
+            label="Correo"
+            placeholder="nuevo@example.com"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextField
+            label="Nombres"
+            placeholder="Ana"
+            value={nombres}
+            onChangeText={setNombres}
+          />
+          <TextField
+            label="Apellidos"
+            placeholder="López"
+            value={apellidos}
+            onChangeText={setApellidos}
+          />
+          <TextField
+            label="Fecha de nacimiento (opcional)"
+            placeholder="AAAA-MM-DD"
+            autoCapitalize="none"
+            value={fechaNacimiento}
+            onChangeText={setFechaNacimiento}
+          />
+          {rolesOptions.length > 0 ? (
+            <SelectPills
+              label="Rol"
+              options={rolesOptions}
+              value={rolNombre}
+              onChange={setRolNombre}
+            />
           ) : (
-            <View>
-              <TextField
-                label="Correo"
-                placeholder="nuevo@example.com"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-              />
-              <TextField
-                label="Nombres"
-                placeholder="Ana"
-                value={nombres}
-                onChangeText={setNombres}
-              />
-              <TextField
-                label="Apellidos"
-                placeholder="López"
-                value={apellidos}
-                onChangeText={setApellidos}
-              />
-              <TextField
-                label="Fecha de nacimiento (opcional)"
-                placeholder="AAAA-MM-DD"
-                autoCapitalize="none"
-                value={fechaNacimiento}
-                onChangeText={setFechaNacimiento}
-              />
-              {rolesOptions.length > 0 ? (
-                <SelectPills
-                  label="Rol"
-                  options={rolesOptions}
-                  value={rolNombre}
-                  onChange={setRolNombre}
-                />
-              ) : (
-                <Text style={[typography.body, styles.hint]}>
-                  No hay roles disponibles. Crea uno primero.
-                </Text>
-              )}
-              <CTAButton
-                label="Crear usuario"
-                onPress={onSubmit}
-                loading={loading}
-                disabled={rolesOptions.length === 0}
-                style={styles.cta}
-              />
-            </View>
+            <Text style={[typography.body, styles.hint]}>
+              No hay roles disponibles. Crea uno primero.
+            </Text>
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          <CTAButton
+            label="Crear usuario"
+            onPress={onSubmit}
+            loading={loading}
+            disabled={rolesOptions.length === 0}
+            style={styles.cta}
+          />
+        </View>
+      )}
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   loader: { marginTop: spacing.xxl },
   hint: { marginBottom: spacing.lg },
   cta: { marginTop: spacing.md },

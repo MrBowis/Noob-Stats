@@ -1,15 +1,8 @@
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, Text, View } from 'react-native';
 import { CTAButton } from '../../components/CTAButton';
+import { FormScreen } from '../../components/FormScreen';
 import { GoogleIcon } from '../../components/GoogleIcon';
 import { TextField } from '../../components/TextField';
 import { useAuth } from '../../context/AuthContext';
@@ -56,69 +49,60 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.header}>
-            <Text style={typography.overline}>Noob Stats</Text>
-            <Text style={typography.title}>Iniciar sesión</Text>
-            <Text style={[typography.body, styles.subtitle]}>
-              Accede a tus estadísticas de fútbol amateur.
-            </Text>
-          </View>
+    <FormScreen
+      edges={['top', 'bottom', 'left', 'right']}
+      contentStyle={styles.content}
+    >
+      <View style={styles.header}>
+        <Text style={typography.overline}>Noob Stats</Text>
+        <Text style={typography.title}>Iniciar sesión</Text>
+        <Text style={[typography.body, styles.subtitle]}>
+          Accede a tus estadísticas de fútbol amateur.
+        </Text>
+      </View>
 
-          <TextField
-            label="Correo"
-            placeholder="example@email.com"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-          />
-          <TextField
-            label="Contraseña"
-            placeholder="••••••••"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
+      <TextField
+        label="Correo"
+        placeholder="example@email.com"
+        autoCapitalize="none"
+        keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextField
+        label="Contraseña"
+        placeholder="••••••••"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+      />
 
-          <CTAButton
-            label="Iniciar sesión"
-            onPress={onLogin}
-            loading={loading}
-            style={styles.cta}
-          />
-          <CTAButton
-            label="Continuar con Google"
-            variant="outline"
-            icon={<GoogleIcon />}
-            onPress={onGoogle}
-            loading={googleLoading}
-            style={styles.cta}
-          />
+      <CTAButton
+        label="Iniciar sesión"
+        onPress={onLogin}
+        loading={loading}
+        style={styles.cta}
+      />
+      <CTAButton
+        label="Continuar con Google"
+        variant="outline"
+        icon={<GoogleIcon />}
+        onPress={onGoogle}
+        loading={googleLoading}
+        style={styles.cta}
+      />
 
-          <View style={styles.footer}>
-            <Text style={typography.body}>¿No tienes cuenta? </Text>
-            <Link href="/(auth)/register" style={styles.link}>
-              Regístrate
-            </Link>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <View style={styles.footer}>
+        <Text style={typography.body}>¿No tienes cuenta? </Text>
+        <Link href="/(auth)/register" style={styles.link}>
+          Regístrate
+        </Link>
+      </View>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
   content: {
     flexGrow: 1,
     justifyContent: 'center',

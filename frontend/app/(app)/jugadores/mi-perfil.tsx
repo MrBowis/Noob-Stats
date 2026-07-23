@@ -1,16 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../../components/Card';
 import { CTAButton } from '../../../components/CTAButton';
+import { FormScreen } from '../../../components/FormScreen';
 import {
   ImagenSeleccionada,
   ImagePickerField,
@@ -120,83 +114,67 @@ export default function MiPerfilDeportivoScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ScreenHeader
-            title="Crear perfil deportivo"
-            subtitle="Tus datos deportivos son públicos para el resto de la app."
-            onBack={() => router.back()}
-          />
+    <FormScreen>
+      <ScreenHeader
+        title="Crear perfil deportivo"
+        subtitle="Tus datos deportivos son públicos para el resto de la app."
+        onBack={() => router.back()}
+      />
 
-          <Card style={styles.card}>
-            <Text style={typography.body}>
-              Tu nombre y fecha de nacimiento se toman de tu cuenta; aquí sólo
-              registras tu información deportiva.
-            </Text>
+      <Card style={styles.card}>
+        <Text style={typography.body}>
+          Tu nombre y fecha de nacimiento se toman de tu cuenta; aquí sólo
+          registras tu información deportiva.
+        </Text>
 
-            <SelectField
-              label="Género"
-              options={OPCIONES_GENERO}
-              value={genero}
-              onChange={setGenero}
-              placeholder="Sin especificar"
-              clearable
-            />
-            <TextField
-              label="Nacionalidad"
-              placeholder="Ecuatoriana"
-              value={nacionalidad}
-              onChangeText={setNacionalidad}
-              maxLength={50}
-            />
-            <ImagePickerField
-              label="Foto de perfil"
-              value={foto?.uri ?? null}
-              onSelect={setFoto}
-              onClear={() => setFoto(null)}
-              helpText="JPG, PNG, WEBP o GIF. Máximo 5 MB."
-              errorText={errorFoto}
-            />
-            <SelectField
-              label="Pierna hábil"
-              options={OPCIONES_PIERNA}
-              value={piernaHabil}
-              onChange={setPiernaHabil}
-              placeholder="Sin especificar"
-              clearable
-            />
-            <SelectField
-              label="Posición principal"
-              options={OPCIONES_POSICION}
-              value={posicion}
-              onChange={setPosicion}
-              placeholder="Sin especificar"
-              clearable
-            />
+        <SelectField
+          label="Género"
+          options={OPCIONES_GENERO}
+          value={genero}
+          onChange={setGenero}
+          placeholder="Sin especificar"
+          clearable
+        />
+        <TextField
+          label="Nacionalidad"
+          placeholder="Ecuatoriana"
+          value={nacionalidad}
+          onChangeText={setNacionalidad}
+          maxLength={50}
+        />
+        <ImagePickerField
+          label="Foto de perfil"
+          value={foto?.uri ?? null}
+          onSelect={setFoto}
+          onClear={() => setFoto(null)}
+          helpText="JPG, PNG, WEBP o GIF. Máximo 5 MB."
+          errorText={errorFoto}
+        />
+        <SelectField
+          label="Pierna hábil"
+          options={OPCIONES_PIERNA}
+          value={piernaHabil}
+          onChange={setPiernaHabil}
+          placeholder="Sin especificar"
+          clearable
+        />
+        <SelectField
+          label="Posición principal"
+          options={OPCIONES_POSICION}
+          value={posicion}
+          onChange={setPosicion}
+          placeholder="Sin especificar"
+          clearable
+        />
 
-            <CTAButton
-              label="Crear perfil"
-              onPress={crear}
-              loading={creando}
-            />
-          </Card>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        <CTAButton label="Crear perfil" onPress={crear} loading={creando} />
+      </Card>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   loader: { marginTop: spacing.xxl },
   card: { gap: spacing.sm },
 });

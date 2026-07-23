@@ -3,10 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -17,6 +14,7 @@ import { Card } from '../../../../components/Card';
 import { CTAButton } from '../../../../components/CTAButton';
 import { DateField } from '../../../../components/DateField';
 import { EmptyState } from '../../../../components/EmptyState';
+import { FormScreen } from '../../../../components/FormScreen';
 import { ScreenHeader } from '../../../../components/ScreenHeader';
 import { SelectField } from '../../../../components/SelectField';
 import { TextField } from '../../../../components/TextField';
@@ -205,15 +203,7 @@ export default function LesionesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
+    <FormScreen>
           <ScreenHeader
             title="Lesiones"
             subtitle="Parte del cuerpo, estado y una nota breve."
@@ -357,16 +347,12 @@ export default function LesionesScreen() {
               ) : null}
             </Card>
           ) : null}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   loader: { marginTop: spacing.xxl },
   card: { marginBottom: spacing.lg },
   lista: { gap: spacing.md },

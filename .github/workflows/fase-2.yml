@@ -73,9 +73,8 @@ jobs:
               '{chat_id:$c,text:$m,parse_mode:"HTML"}')"
 
   # ─── SonarCloud ─────────────────────────────────────────────────────────────
-  # El alcance del análisis lo define sonar-project.properties (auth-ms y
-  # frontend). Si se amplía a los demás microservicios, añade aquí la descarga
-  # de sus artefactos de cobertura.
+  # El alcance del análisis lo define sonar-project.properties (los 4
+  # microservicios y el frontend).
   sonar:
     name: "SonarCloud"
     needs: test
@@ -90,6 +89,24 @@ jobs:
         with:
           name: coverage-auth-ms
           path: auth-ms/coverage
+
+      - name: Download coverage · equipos-ms
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-equipos-ms
+          path: equipos-ms/coverage
+
+      - name: Download coverage · admin-ms
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-admin-ms
+          path: admin-ms/coverage
+
+      - name: Download coverage · futbolista-ms
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-futbolista-ms
+          path: futbolista-ms/coverage
 
       - name: Download coverage · frontend
         uses: actions/download-artifact@v4
@@ -144,6 +161,7 @@ jobs:
           SUPABASE_URL=http://build-placeholder
           SUPABASE_ANON_KEY=build-placeholder
           SUPABASE_SERVICE_ROLE_KEY=build-placeholder
+          GRAFANA_ADMIN_PASSWORD=build-placeholder
           EOF
 
       - name: Build de la pila

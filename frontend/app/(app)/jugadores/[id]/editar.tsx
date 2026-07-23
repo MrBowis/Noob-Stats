@@ -3,10 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -17,6 +14,7 @@ import { Badge } from '../../../../components/Badge';
 import { Card } from '../../../../components/Card';
 import { CTAButton } from '../../../../components/CTAButton';
 import { EmptyState } from '../../../../components/EmptyState';
+import { FormScreen } from '../../../../components/FormScreen';
 import {
   ImagenSeleccionada,
   ImagePickerField,
@@ -281,19 +279,14 @@ export default function EditarJugadorScreen() {
 
   if (!permitido) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <ScreenHeader
-            title="Editar perfil"
-            onBack={() => router.back()}
-          />
-          <EmptyState
-            icon="lock-closed-outline"
-            title="Sin permisos"
-            message="Solo el propietario puede editar este perfil deportivo."
-          />
-        </ScrollView>
-      </SafeAreaView>
+      <FormScreen>
+        <ScreenHeader title="Editar perfil" onBack={() => router.back()} />
+        <EmptyState
+          icon="lock-closed-outline"
+          title="Sin permisos"
+          message="Solo el propietario puede editar este perfil deportivo."
+        />
+      </FormScreen>
     );
   }
 
@@ -302,15 +295,7 @@ export default function EditarJugadorScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
+    <FormScreen>
           <ScreenHeader
             title="Editar perfil"
             subtitle="Cada sección se guarda por separado."
@@ -516,16 +501,12 @@ export default function EditarJugadorScreen() {
             variant="outline"
             onPress={() => router.push(`/(app)/jugadores/${id}/lesiones`)}
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  content: { padding: spacing.xl },
   loader: { marginTop: spacing.xxl },
   card: { marginBottom: spacing.lg, gap: spacing.sm },
   seccion: { color: colors.textPrimary, fontSize: 16, fontWeight: '700' },

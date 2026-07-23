@@ -2,12 +2,25 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { resolveCorsOrigin } from './observability/cors-origin';
+import { AppLogger } from './observability/app-logger.service';
+import { MetricsService } from './observability/metrics.service';
+import { createObservabilityMiddleware } from './observability/observability.middleware';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // bufferLogs difiere los logs de arranque hasta que se instala el logger.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
+  // Logger estructurado en JSON y observabilidad (request-id + métricas).
+  app.useLogger(app.get(AppLogger));
+  app.use(createObservabilityMiddleware(app.get(MetricsService)));
+
+  // Sin ALLOWED_ORIGIN configurado, deniega en vez de reflejar cualquier
+  // origen: un comodín por defecto es un hotspot de seguridad (CORS
+  // permisivo). En producción, ALLOWED_ORIGIN debe apuntar al origen real
+  // del frontend (o su lista separada por comas).
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGIN ?? '*',
+    origin: resolveCorsOrigin(process.env.ALLOWED_ORIGIN),
   });
   app.useGlobalPipes(
     new ValidationPipe({
